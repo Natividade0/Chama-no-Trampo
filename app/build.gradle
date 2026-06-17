@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'com.chamanotrampo.app'
-    compileSdk 35
+    compileSdk 33
 
     defaultConfig {
         applicationId 'com.chamanotrampo.app'
         minSdk 23
-        targetSdk 35
+        targetSdk 33
         versionCode 1
         versionName '0.1.0'
     }
