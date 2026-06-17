@@ -3,6 +3,7 @@ plugins {
 }
 
 android {
+    namespace 'com.chamanotrampo.app'
     compileSdkVersion 33
 
     defaultConfig {
