@@ -1,8 +1,10 @@
 package com.chamanotrampo.app;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
@@ -243,12 +245,12 @@ public class MainActivity extends Activity {
         card.addView(texto(item.valor.length() == 0 ? "Valor a combinar" : item.valor, 16, Color.rgb(22, 163, 74), true));
         card.addView(texto(item.descricao.length() == 0 ? "Sem descricao informada." : item.descricao, 14, Color.rgb(51, 65, 85), false));
 
-        TextView interesse = bloco("Tenho interesse", 15, Color.WHITE, true, Color.rgb(15, 23, 42));
+        TextView interesse = bloco("Chamar no WhatsApp", 15, Color.WHITE, true, Color.rgb(15, 23, 42));
         interesse.setGravity(Gravity.CENTER);
         interesse.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Contato: " + item.contato, Toast.LENGTH_LONG).show();
+                abrirWhatsApp(item);
             }
         });
         card.addView(espaco(8));
@@ -256,6 +258,43 @@ public class MainActivity extends Activity {
 
         conteudoContainer.addView(card);
         conteudoContainer.addView(espaco(10));
+    }
+
+    private void abrirWhatsApp(Oportunidade item) {
+        String numero = limparNumero(item.contato);
+        if (numero.length() == 0) {
+            Toast.makeText(this, "Contato nao informado.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        String mensagem = "Ola, vi sua oportunidade no Chama no Trampo e tenho interesse.\n\n" +
+                "Oportunidade: " + item.titulo + "\n" +
+                "Local: " + item.local;
+
+        String url = "https://wa.me/" + numero + "?text=" + Uri.encode(mensagem);
+
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        } catch (Exception erro) {
+            Toast.makeText(this, "Nao consegui abrir o WhatsApp neste aparelho.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private String limparNumero(String contato) {
+        StringBuilder numeros = new StringBuilder();
+        for (int i = 0; i < contato.length(); i++) {
+            char c = contato.charAt(i);
+            if (c >= '0' && c <= '9') {
+                numeros.append(c);
+            }
+        }
+
+        String numero = numeros.toString();
+        if (numero.length() == 10 || numero.length() == 11) {
+            numero = "55" + numero;
+        }
+        return numero;
     }
 
     private EditText campo(String dica) {
