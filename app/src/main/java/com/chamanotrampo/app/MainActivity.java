@@ -128,10 +128,15 @@ public class MainActivity extends Activity {
     }
 
     private void showSearch() {
-        currentScreen = "search";
-        lastListScreen = "search";
-        renderListScreen("Buscar oportunidades", "Digite para filtrar as oportunidades em tempo real.", false, searchEditText == null ? "" : searchEditText.getText().toString());
+        String query = searchEditText == null ? "" : searchEditText.getText().toString();
+        showHome(query);
         focusSearchField();
+    }
+
+    private void showHome(String query) {
+        currentScreen = "home";
+        lastListScreen = "home";
+        renderListScreen("Oportunidades perto de voce", "Digite na busca para filtrar os cards em tempo real.", false, query);
     }
 
     private void showFavorites() {
@@ -380,14 +385,7 @@ public class MainActivity extends Activity {
             @Override public void onClick(View v) {
                 if ("home".equals(target)) showHome();
                 if ("search".equals(target)) {
-                    if ("details".equals(currentScreen) || "profile".equals(currentScreen)) {
-                        showSearch();
-                    } else {
-                        currentScreen = "search";
-                        lastListScreen = "search";
-                        focusSearchField();
-                        buildBottomNav();
-                    }
+                    showSearch();
                 }
                 if ("publish".equals(target)) showPublishDialog();
                 if ("favorites".equals(target)) showFavorites();
