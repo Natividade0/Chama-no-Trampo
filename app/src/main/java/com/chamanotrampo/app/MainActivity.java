@@ -6,6 +6,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -14,12 +16,33 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        montarTelaInicial();
+    }
 
-        TextView lista = findViewById(R.id.txtLista);
-        Button btnWhatsapp = findViewById(R.id.btnWhatsapp);
-        Button btnPublicar = findViewById(R.id.btnPublicar);
+    private void montarTelaInicial() {
+        ScrollView scrollView = new ScrollView(this);
+        scrollView.setFillViewport(true);
+        scrollView.setBackgroundColor(0xFFF7F7F7);
 
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(32, 32, 32, 32);
+
+        TextView titulo = new TextView(this);
+        titulo.setText("Chama no Trampo");
+        titulo.setTextSize(30);
+        titulo.setTextColor(0xFF1B1B1B);
+        titulo.setTypeface(null, 1);
+        layout.addView(titulo);
+
+        TextView subtitulo = new TextView(this);
+        subtitulo.setText("Empregos, bicos e servicos perto de voce.");
+        subtitulo.setTextSize(16);
+        subtitulo.setTextColor(0xFF626262);
+        subtitulo.setPadding(0, 12, 0, 24);
+        layout.addView(subtitulo);
+
+        TextView lista = new TextView(this);
         lista.setText(
                 "VAGA - Auxiliar de producao\n" +
                 "Guariba - Centro\n" +
@@ -34,24 +57,36 @@ public class MainActivity extends Activity {
                 "Jaboticabal - Nova Jaboticabal\n" +
                 "A combinar"
         );
+        lista.setTextSize(16);
+        lista.setTextColor(0xFF1B1B1B);
+        lista.setBackgroundColor(0xFFFFFFFF);
+        lista.setPadding(24, 24, 24, 24);
+        layout.addView(lista);
 
+        Button btnWhatsapp = new Button(this);
+        btnWhatsapp.setText("Chamar no WhatsApp");
+        btnWhatsapp.setAllCaps(false);
         btnWhatsapp.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 abrirWhatsapp();
             }
         });
+        layout.addView(btnWhatsapp);
 
+        Button btnPublicar = new Button(this);
+        btnPublicar.setText("Publicar oportunidade");
+        btnPublicar.setAllCaps(false);
         btnPublicar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(
-                        MainActivity.this,
-                        "Em breve: tela para publicar vaga, bico ou servico.",
-                        Toast.LENGTH_LONG
-                ).show();
+                Toast.makeText(MainActivity.this, "Em breve: publicar vaga, bico ou servico.", Toast.LENGTH_LONG).show();
             }
         });
+        layout.addView(btnPublicar);
+
+        scrollView.addView(layout);
+        setContentView(scrollView);
     }
 
     private void abrirWhatsapp() {
@@ -60,7 +95,8 @@ public class MainActivity extends Activity {
         String url = "https://wa.me/" + telefone + "?text=" + Uri.encode(mensagem);
 
         try {
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
         } catch (Exception erro) {
             Toast.makeText(this, "Nao foi possivel abrir o WhatsApp.", Toast.LENGTH_LONG).show();
         }
