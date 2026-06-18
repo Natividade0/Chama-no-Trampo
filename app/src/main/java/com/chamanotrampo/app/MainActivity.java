@@ -130,12 +130,8 @@ public class MainActivity extends Activity {
     private void showSearch() {
         currentScreen = "search";
         lastListScreen = "search";
-        renderListScreen("Buscar oportunidades", "Digite titulo, cidade, categoria, valor ou autor.", false, searchEditText == null ? "" : searchEditText.getText().toString());
-        searchEditText.requestFocus();
-        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-        if (imm != null) {
-            imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT);
-        }
+        renderListScreen("Buscar oportunidades", "Digite para filtrar as oportunidades em tempo real.", false, searchEditText == null ? "" : searchEditText.getText().toString());
+        focusSearchField();
     }
 
     private void showFavorites() {
@@ -383,12 +379,31 @@ public class MainActivity extends Activity {
         button.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
                 if ("home".equals(target)) showHome();
-                if ("search".equals(target)) showSearch();
+                if ("search".equals(target)) {
+                    if ("details".equals(currentScreen) || "profile".equals(currentScreen)) {
+                        showSearch();
+                    } else {
+                        currentScreen = "search";
+                        lastListScreen = "search";
+                        focusSearchField();
+                        buildBottomNav();
+                    }
+                }
                 if ("publish".equals(target)) showPublishDialog();
                 if ("favorites".equals(target)) showFavorites();
                 if ("profile".equals(target)) showProfile();
             }
         });
+    }
+
+    private void focusSearchField() {
+        if (searchEditText == null) return;
+        searchEditText.requestFocus();
+        searchEditText.setSelection(searchEditText.getText().length());
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            imm.showSoftInput(searchEditText, InputMethodManager.SHOW_IMPLICIT);
+        }
     }
 
     private void refreshCurrentScreen() {
