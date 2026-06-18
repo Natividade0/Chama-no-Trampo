@@ -16,18 +16,20 @@ A ideia central é simples:
 
 > Quem precisa publica. Quem faz chama.
 
-## MVP 0.1
+## MVP atual
 
-Primeira versão simples, sem servidor e sem login, com dados locais/fictícios para validar a ideia e o visual.
+Versão nativa Android criada pelo celular, com visual premium, oportunidades locais, publicação, perfil local e contato por WhatsApp.
 
-Funcionalidades iniciais:
+Funcionalidades atuais:
 
 - Tela inicial com identidade do app
 - Lista de oportunidades locais
 - Filtro por categoria
 - Formulário para publicar oportunidade
-- Tela/cartão com detalhes
+- Perfil local do usuário
+- Oportunidades salvas no aparelho
 - Botão para contato via WhatsApp
+- Redesign visual com cards premium, chips e bottom nav
 
 ## Categorias iniciais
 
@@ -35,9 +37,13 @@ Funcionalidades iniciais:
 - Bico rápido
 - Serviço
 - Urgente / Preciso para hoje
+- Segurança do Trabalho
 
 ## Próximas etapas
 
+- Busca funcional
+- Favoritos
+- Tela completa de detalhes
 - Integração com Firebase Auth
 - Cadastro de usuário/profissional/empresa
 - Firestore para salvar oportunidades reais
@@ -51,8 +57,4 @@ Funcionalidades iniciais:
 - Android nativo
 - Java
 - Gradle
-- Interface programática simples
-
-## Slogan provisório
-
-**Empregos, bicos e serviços perto de você.**
+- AndroidIDE
