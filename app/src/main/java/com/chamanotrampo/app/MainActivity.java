@@ -5,11 +5,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -25,6 +28,24 @@ public class MainActivity extends Activity {
     private static final String KEY_TELEFONE = "perfil_telefone";
     private static final String KEY_TIPO_USUARIO = "perfil_tipo_usuario";
     private static final String KEY_OPORTUNIDADES = "oportunidades_salvas";
+
+    private static final int CREAM = Color.rgb(255, 248, 239);
+    private static final int INK = Color.rgb(43, 34, 80);
+    private static final int INK_LIGHT = Color.rgb(119, 110, 142);
+    private static final int YELLOW = Color.rgb(255, 210, 63);
+    private static final int TANGERINE = Color.rgb(255, 140, 66);
+    private static final int CORAL = Color.rgb(255, 92, 92);
+    private static final int GREEN = Color.rgb(6, 193, 103);
+    private static final int WHATSAPP = Color.rgb(31, 184, 85);
+    private static final int BLUE = Color.rgb(61, 174, 255);
+    private static final int PURPLE = Color.rgb(155, 93, 229);
+    private static final int WHITE = Color.WHITE;
+
+    private static final int VAGA_TINT = Color.rgb(227, 251, 240);
+    private static final int SERVICO_TINT = Color.rgb(230, 244, 255);
+    private static final int BICO_TINT = Color.rgb(243, 234, 254);
+    private static final int URGENTE_TINT = Color.rgb(255, 234, 234);
+    private static final int SEGURANCA_TINT = Color.rgb(255, 241, 214);
 
     private LinearLayout conteudoContainer;
     private String filtroAtual = "TODOS";
@@ -102,7 +123,7 @@ public class MainActivity extends Activity {
             oportunidades.add(new Oportunidade("SERVICO", "Pedreiro para reforma", "Jardinopolis", "Enviar orcamento", "Cliente precisa reformar uma area pequena.", "16999999999", "Equipe Chama no Trampo"));
             oportunidades.add(new Oportunidade("BICO", "Ajudante para descarregar caminhao", "Ribeirao Preto", "R$ 120,00 no dia", "Servico rapido, pagamento no mesmo dia.", "16999999999", "Equipe Chama no Trampo"));
             oportunidades.add(new Oportunidade("URGENTE", "Eletricista hoje", "Jaboticabal", "Valor a combinar", "Atendimento ainda hoje.", "16999999999", "Equipe Chama no Trampo"));
-            oportunidades.add(new Oportunidade("VAGA", "Tecnico de seguranca do trabalho", "Ribeirao Preto e regiao", "Enviar pretensao", "Acompanhamento de obra e documentacao.", "16999999999", "Equipe Chama no Trampo"));
+            oportunidades.add(new Oportunidade("SEGURANCA", "Tecnico de seguranca do trabalho", "Ribeirao Preto e regiao", "Enviar pretensao", "Acompanhamento de obra e documentacao.", "16999999999", "Equipe Chama no Trampo"));
         }
     }
 
@@ -130,42 +151,21 @@ public class MainActivity extends Activity {
 
     private void montarTelaPrincipal() {
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(Color.rgb(241, 245, 249));
+        scroll.setBackgroundColor(CREAM);
 
         LinearLayout raiz = new LinearLayout(this);
         raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(16), dp(16), dp(16), dp(24));
+        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
 
-        TextView cabecalho = bloco("Chama no Trampo\n\nEmpregos, bicos e servicos perto de voce.", 24, Color.WHITE, true, Color.rgb(15, 23, 42));
-        cabecalho.setGravity(Gravity.CENTER_VERTICAL);
-        raiz.addView(cabecalho, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(150)));
-
+        raiz.addView(headerPrincipal());
         raiz.addView(espaco(12));
-
-        if (perfilCompleto()) {
-            raiz.addView(bloco("Perfil ativo: " + perfilNome + "\n" + textoPerfilResumo(), 15, Color.rgb(15, 23, 42), true, Color.WHITE));
-        } else {
-            TextView aviso = bloco("Complete seu perfil para publicar oportunidades com mais confianca.", 15, Color.WHITE, true, Color.rgb(217, 119, 6));
-            aviso.setGravity(Gravity.CENTER);
-            aviso.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    montarTelaPerfil();
-                }
-            });
-            raiz.addView(aviso);
-        }
-
+        raiz.addView(profileBanner());
         raiz.addView(espaco(12));
-        raiz.addView(linhaAcoesPrincipais());
-        raiz.addView(espaco(12));
-        raiz.addView(bloco("Buscar: pedreiro, ajudante, eletricista...", 15, Color.rgb(71, 85, 105), false, Color.WHITE));
-        raiz.addView(espaco(12));
-        raiz.addView(texto("Categorias", 18, Color.rgb(15, 23, 42), true));
+        raiz.addView(searchBar());
         raiz.addView(espaco(8));
-        raiz.addView(linhaCategorias());
-        raiz.addView(espaco(14));
-        raiz.addView(texto("Oportunidades perto de voce", 19, Color.rgb(15, 23, 42), true));
+        raiz.addView(chipsCategorias());
+        raiz.addView(espaco(10));
+        raiz.addView(sectionLabel());
         raiz.addView(espaco(8));
 
         conteudoContainer = new LinearLayout(this);
@@ -173,134 +173,257 @@ public class MainActivity extends Activity {
         raiz.addView(conteudoContainer);
 
         scroll.addView(raiz);
-        setContentView(scroll);
+        setContentViewComNav(scroll, "inicio", true);
 
-        atualizarLista("TODOS");
+        atualizarLista(filtroAtual);
     }
 
-    private LinearLayout linhaAcoesPrincipais() {
+    private View headerPrincipal() {
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(20), dp(18), dp(20), dp(18));
+        header.setBackground(gradient(YELLOW, TANGERINE, dp(28)));
+        header.setElevation(dp(4));
+
+        TextView marca = texto("Chama no Trampo", 29, INK, true);
+        marca.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        TextView subtitulo = texto("Empregos, bicos e servicos perto de voce", 15, Color.rgb(91, 62, 30), true);
+
+        header.addView(marca);
+        header.addView(subtitulo);
+
+        return header;
+    }
+
+    private View profileBanner() {
+        if (perfilCompleto()) {
+            LinearLayout box = new LinearLayout(this);
+            box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(dp(16), dp(13), dp(16), dp(13));
+            box.setBackground(bg(WHITE, dp(18)));
+            box.setElevation(dp(3));
+
+            box.addView(texto("Perfil ativo: " + perfilNome, 15, INK, true));
+            box.addView(texto(textoPerfilResumo(), 13, INK_LIGHT, false));
+
+            box.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    montarTelaPerfil();
+                }
+            });
+            return box;
+        }
+
         LinearLayout box = new LinearLayout(this);
         box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(16), dp(13), dp(16), dp(13));
+        box.setBackground(bg(WHITE, dp(18)));
+        box.setElevation(dp(3));
 
-        LinearLayout linha1 = new LinearLayout(this);
-        linha1.setOrientation(LinearLayout.HORIZONTAL);
-        linha1.addView(botaoTexto("Ver oportunidades", Color.rgb(22, 163, 74), Color.WHITE, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPrincipal();
-            }
-        }), peso());
-        linha1.addView(espacoLargura(8));
-        linha1.addView(botaoTexto("Publicar", Color.rgb(15, 23, 42), Color.WHITE, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPublicar();
-            }
-        }), peso());
-        box.addView(linha1);
-
+        TextView linha = texto("Falta pouco! Complete seu perfil e apareca mais nas buscas", 14, INK, true);
+        box.addView(linha);
         box.addView(espaco(8));
 
-        box.addView(botaoTexto("Meu perfil", Color.WHITE, Color.rgb(15, 23, 42), new View.OnClickListener() {
+        LinearLayout trilha = new LinearLayout(this);
+        trilha.setBackground(bg(Color.rgb(241, 236, 223), dp(8)));
+        LinearLayout preenchido = new LinearLayout(this);
+        preenchido.setBackground(bg(GREEN, dp(8)));
+        trilha.addView(preenchido, new LinearLayout.LayoutParams(0, dp(7), 60));
+        box.addView(trilha, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(7)));
+
+        box.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 montarTelaPerfil();
             }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        });
 
         return box;
     }
 
-    private String textoPerfilResumo() {
-        String cidade = perfilCidade.trim().length() == 0 ? "Cidade nao informada" : perfilCidade;
-        String tipo = perfilTipoUsuario.trim().length() == 0 ? "Usuario local" : perfilTipoUsuario;
-        return cidade + " - " + tipo;
+    private View searchBar() {
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.HORIZONTAL);
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(dp(16), dp(12), dp(16), dp(12));
+        box.setBackground(bg(WHITE, dp(999)));
+        box.setElevation(dp(3));
+
+        TextView icon = texto("🔎", 17, INK_LIGHT, false);
+        TextView hint = texto("Buscar: pedreiro, ajudante, eletricista...", 14, INK_LIGHT, true);
+
+        box.addView(icon);
+        box.addView(espacoLargura(8));
+        box.addView(hint, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        box.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        return box;
     }
 
-    private void montarTelaPerfil() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(Color.rgb(241, 245, 249));
+    private View chipsCategorias() {
+        HorizontalScrollView horizontal = new HorizontalScrollView(this);
+        horizontal.setHorizontalScrollBarEnabled(false);
 
-        LinearLayout raiz = new LinearLayout(this);
-        raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(16), dp(16), dp(16), dp(24));
+        LinearLayout linha = new LinearLayout(this);
+        linha.setOrientation(LinearLayout.HORIZONTAL);
+        linha.setPadding(0, dp(4), 0, dp(4));
 
-        raiz.addView(bloco("Meu perfil\n\nCrie uma identidade para publicar e negociar com mais confianca.", 23, Color.WHITE, true, Color.rgb(15, 23, 42)), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(150)));
-        raiz.addView(espaco(12));
+        linha.addView(chip("Todos", "TODOS"));
+        linha.addView(chip("Vagas", "VAGA"));
+        linha.addView(chip("Bicos", "BICO"));
+        linha.addView(chip("Servicos", "SERVICO"));
+        linha.addView(chip("Urgentes", "URGENTE"));
+        linha.addView(chip("Seguranca", "SEGURANCA"));
 
-        final EditText nome = campo("Seu nome ou nome da empresa");
-        final EditText cidade = campo("Cidade / bairro");
-        final EditText telefone = campo("WhatsApp para contato");
-        final EditText tipoUsuario = campo("Tipo: Trabalhador, Contratante, Empresa ou Autonomo");
+        horizontal.addView(linha);
+        return horizontal;
+    }
 
-        nome.setText(perfilNome);
-        cidade.setText(perfilCidade);
-        telefone.setText(perfilTelefone);
-        tipoUsuario.setText(perfilTipoUsuario);
+    private TextView chip(String nome, final String filtro) {
+        boolean ativo = filtro.equals(filtroAtual);
+        int fundo = ativo ? INK : tintTipo(filtro);
+        int texto = ativo ? WHITE : corTipo(filtro);
 
-        raiz.addView(nome);
-        raiz.addView(espaco(8));
-        raiz.addView(cidade);
-        raiz.addView(espaco(8));
-        raiz.addView(telefone);
-        raiz.addView(espaco(8));
-        raiz.addView(tipoUsuario);
-        raiz.addView(espaco(14));
+        TextView chip = texto(nome, 14, texto, true);
+        chip.setGravity(Gravity.CENTER);
+        chip.setPadding(dp(17), dp(9), dp(17), dp(9));
+        chip.setBackground(bg(fundo, dp(999)));
 
-        raiz.addView(botaoTexto("Salvar perfil", Color.rgb(22, 163, 74), Color.WHITE, new View.OnClickListener() {
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
+        lp.setMargins(0, 0, dp(9), 0);
+        chip.setLayoutParams(lp);
+
+        chip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String nomeTexto = nome.getText().toString().trim();
-                String cidadeTexto = cidade.getText().toString().trim();
-                String telefoneTexto = telefone.getText().toString().trim();
-                String tipoTexto = tipoUsuario.getText().toString().trim();
-
-                if (nomeTexto.length() == 0 || telefoneTexto.length() == 0) {
-                    Toast.makeText(MainActivity.this, "Preencha pelo menos nome e WhatsApp.", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                if (tipoTexto.length() == 0) {
-                    tipoTexto = "Usuario local";
-                }
-
-                salvarPerfil(nomeTexto, cidadeTexto, telefoneTexto, tipoTexto);
-                Toast.makeText(MainActivity.this, "Perfil salvo com sucesso.", Toast.LENGTH_LONG).show();
+                filtroAtual = filtro;
                 montarTelaPrincipal();
             }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        });
 
-        raiz.addView(espaco(10));
-        raiz.addView(bloco("Suas oportunidades publicadas ficam salvas neste aparelho. Na proxima etapa elas vao para um banco online.", 14, Color.rgb(71, 85, 105), false, Color.WHITE));
-        raiz.addView(espaco(10));
-        raiz.addView(botaoTexto("Voltar", Color.WHITE, Color.rgb(15, 23, 42), new View.OnClickListener() {
+        return chip;
+    }
+
+    private View sectionLabel() {
+        int total = contarFiltro(filtroAtual);
+        String categoria = "TODOS".equals(filtroAtual) ? "perto de voce" : filtroAtual.toLowerCase();
+        return texto(total + " oportunidades " + categoria, 14, INK_LIGHT, true);
+    }
+
+    private void atualizarLista(String filtro) {
+        filtroAtual = filtro;
+        if (conteudoContainer == null) {
+            return;
+        }
+
+        conteudoContainer.removeAllViews();
+
+        int total = 0;
+        for (int i = 0; i < oportunidades.size(); i++) {
+            Oportunidade item = oportunidades.get(i);
+            if ("TODOS".equals(filtroAtual) || item.tipo.equals(filtroAtual)) {
+                conteudoContainer.addView(cardOportunidade(item));
+                conteudoContainer.addView(espaco(14));
+                total++;
+            }
+        }
+
+        if (total == 0) {
+            conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada nesta categoria.", 15, INK_LIGHT, false, WHITE, dp(18)));
+        }
+    }
+
+    private View cardOportunidade(final Oportunidade item) {
+        LinearLayout card = new LinearLayout(this);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setPadding(dp(18), dp(16), dp(18), dp(18));
+        card.setBackground(bg(tintTipo(item.tipo), dp(24)));
+        card.setElevation(dp(3));
+
+        LinearLayout top = new LinearLayout(this);
+        top.setOrientation(LinearLayout.HORIZONTAL);
+        top.setGravity(Gravity.CENTER_VERTICAL);
+
+        LinearLayout left = new LinearLayout(this);
+        left.setOrientation(LinearLayout.HORIZONTAL);
+        left.setGravity(Gravity.CENTER_VERTICAL);
+
+        TextView circle = texto(iconTipo(item.tipo), 15, WHITE, true);
+        circle.setGravity(Gravity.CENTER);
+        circle.setBackground(bg(corTipo(item.tipo), dp(999)));
+        left.addView(circle, larguraAltura(dp(34), dp(34)));
+        left.addView(espacoLargura(9));
+
+        TextView badge = texto(labelTipo(item.tipo), 12, corTipo(item.tipo), true);
+        badge.setGravity(Gravity.CENTER);
+        badge.setPadding(dp(10), dp(5), dp(10), dp(5));
+        badge.setBackground(bg(Color.argb(105, 255, 255, 255), dp(999)));
+        left.addView(badge);
+
+        top.addView(left, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+
+        TextView distancia = texto(distanciaFake(item), 12, INK_LIGHT, true);
+        distancia.setGravity(Gravity.RIGHT);
+        top.addView(distancia);
+
+        card.addView(top);
+        card.addView(espaco(9));
+
+        TextView titulo = texto(item.titulo, 21, INK, true);
+        card.addView(titulo);
+
+        card.addView(texto(item.local, 14, INK_LIGHT, true));
+
+        String autor = item.autor == null || item.autor.trim().length() == 0 ? "Usuario local" : item.autor;
+        card.addView(texto("por " + autor, 12, INK_LIGHT, false));
+
+        card.addView(espaco(4));
+        card.addView(texto(item.valor.length() == 0 ? "Valor a combinar" : item.valor, 15, corPreco(item.valor), true));
+        card.addView(texto(item.descricao.length() == 0 ? "Sem descricao informada." : item.descricao, 14, Color.rgb(86, 76, 114), false));
+        card.addView(espaco(12));
+
+        TextView cta = texto("☎  Chamar no WhatsApp", 15, WHITE, true);
+        cta.setGravity(Gravity.CENTER);
+        cta.setPadding(0, dp(12), 0, dp(12));
+        cta.setBackground(bg(WHATSAPP, dp(999)));
+        cta.setElevation(dp(3));
+        cta.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                montarTelaPrincipal();
+                abrirWhatsApp(item);
             }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        });
 
-        scroll.addView(raiz);
-        setContentView(scroll);
+        card.addView(cta, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+
+        return card;
     }
 
     private void montarTelaPublicar() {
         ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(Color.rgb(241, 245, 249));
+        scroll.setBackgroundColor(CREAM);
 
         LinearLayout raiz = new LinearLayout(this);
         raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(16), dp(16), dp(16), dp(24));
+        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
 
-        raiz.addView(bloco("Publicar oportunidade\n\nCadastre uma vaga, bico ou servico.", 24, Color.WHITE, true, Color.rgb(15, 23, 42)), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(140)));
+        raiz.addView(headerSecundario("Publicar oportunidade", "Cadastre uma vaga, bico ou servico."));
         raiz.addView(espaco(12));
 
         if (!perfilCompleto()) {
-            raiz.addView(bloco("Dica: cadastre seu perfil antes de publicar para passar mais confianca.", 14, Color.WHITE, true, Color.rgb(217, 119, 6)));
+            raiz.addView(bloco("Dica: cadastre seu perfil antes de publicar para passar mais confianca.", 14, WHITE, true, TANGERINE, dp(18)));
             raiz.addView(espaco(10));
         }
 
-        final EditText tipo = campo("Tipo: VAGA, BICO, SERVICO ou URGENTE");
+        final EditText tipo = campo("Tipo: VAGA, BICO, SERVICO, URGENTE ou SEGURANCA");
         final EditText titulo = campo("Titulo da oportunidade");
         final EditText cidade = campo("Cidade / bairro");
         final EditText valor = campo("Valor ou salario");
@@ -327,7 +450,7 @@ public class MainActivity extends Activity {
         raiz.addView(contato);
         raiz.addView(espaco(14));
 
-        raiz.addView(botaoTexto("Salvar oportunidade", Color.rgb(22, 163, 74), Color.WHITE, new View.OnClickListener() {
+        raiz.addView(botaoTexto("Salvar oportunidade", GREEN, WHITE, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String tipoTexto = tipo.getText().toString().trim().toUpperCase();
@@ -347,13 +470,14 @@ public class MainActivity extends Activity {
                 String autor = perfilNome.trim().length() == 0 ? "Usuario local" : perfilNome;
                 oportunidades.add(0, new Oportunidade(tipoTexto, tituloTexto, cidadeTexto, valorTexto, descricaoTexto, contatoTexto, autor));
                 salvarOportunidades();
+                filtroAtual = "TODOS";
                 Toast.makeText(MainActivity.this, "Oportunidade publicada e salva neste aparelho.", Toast.LENGTH_LONG).show();
                 montarTelaPrincipal();
             }
         }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
 
         raiz.addView(espaco(10));
-        raiz.addView(botaoTexto("Voltar", Color.WHITE, Color.rgb(15, 23, 42), new View.OnClickListener() {
+        raiz.addView(botaoTexto("Voltar", WHITE, INK, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 montarTelaPrincipal();
@@ -361,105 +485,192 @@ public class MainActivity extends Activity {
         }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
 
         scroll.addView(raiz);
-        setContentView(scroll);
+        setContentViewComNav(scroll, "publicar", false);
     }
 
-    private LinearLayout linhaCategorias() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
+    private void montarTelaPerfil() {
+        ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(CREAM);
 
-        LinearLayout linha1 = new LinearLayout(this);
-        linha1.setOrientation(LinearLayout.HORIZONTAL);
-        linha1.addView(categoria("Todos", "TODOS"), peso());
-        linha1.addView(espacoLargura(8));
-        linha1.addView(categoria("Vagas", "VAGA"), peso());
-        box.addView(linha1);
+        LinearLayout raiz = new LinearLayout(this);
+        raiz.setOrientation(LinearLayout.VERTICAL);
+        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
 
-        box.addView(espaco(8));
+        raiz.addView(headerSecundario("Meu perfil", "Crie uma identidade para publicar e negociar com mais confianca."));
+        raiz.addView(espaco(12));
 
-        LinearLayout linha2 = new LinearLayout(this);
-        linha2.setOrientation(LinearLayout.HORIZONTAL);
-        linha2.addView(categoria("Bicos", "BICO"), peso());
-        linha2.addView(espacoLargura(8));
-        linha2.addView(categoria("Servicos", "SERVICO"), peso());
-        box.addView(linha2);
+        final EditText nome = campo("Seu nome ou nome da empresa");
+        final EditText cidade = campo("Cidade / bairro");
+        final EditText telefone = campo("WhatsApp para contato");
+        final EditText tipoUsuario = campo("Tipo: Trabalhador, Contratante, Empresa ou Autonomo");
 
-        box.addView(espaco(8));
+        nome.setText(perfilNome);
+        cidade.setText(perfilCidade);
+        telefone.setText(perfilTelefone);
+        tipoUsuario.setText(perfilTipoUsuario);
 
-        LinearLayout linha3 = new LinearLayout(this);
-        linha3.setOrientation(LinearLayout.HORIZONTAL);
-        linha3.addView(categoria("Urgentes", "URGENTE"), peso());
-        linha3.addView(espacoLargura(8));
-        linha3.addView(categoria("Publicar", "PUBLICAR"), peso());
-        box.addView(linha3);
+        raiz.addView(nome);
+        raiz.addView(espaco(8));
+        raiz.addView(cidade);
+        raiz.addView(espaco(8));
+        raiz.addView(telefone);
+        raiz.addView(espaco(8));
+        raiz.addView(tipoUsuario);
+        raiz.addView(espaco(14));
 
-        return box;
-    }
-
-    private TextView categoria(String nome, final String filtro) {
-        TextView item = bloco(nome, 15, Color.rgb(15, 23, 42), true, Color.WHITE);
-        item.setGravity(Gravity.CENTER);
-        item.setOnClickListener(new View.OnClickListener() {
+        raiz.addView(botaoTexto("Salvar perfil", GREEN, WHITE, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if ("PUBLICAR".equals(filtro)) {
-                    montarTelaPublicar();
-                } else {
-                    atualizarLista(filtro);
+                String nomeTexto = nome.getText().toString().trim();
+                String cidadeTexto = cidade.getText().toString().trim();
+                String telefoneTexto = telefone.getText().toString().trim();
+                String tipoTexto = tipoUsuario.getText().toString().trim();
+
+                if (nomeTexto.length() == 0 || telefoneTexto.length() == 0) {
+                    Toast.makeText(MainActivity.this, "Preencha pelo menos nome e WhatsApp.", Toast.LENGTH_LONG).show();
+                    return;
                 }
+
+                if (tipoTexto.length() == 0) {
+                    tipoTexto = "Usuario local";
+                }
+
+                salvarPerfil(nomeTexto, cidadeTexto, telefoneTexto, tipoTexto);
+                Toast.makeText(MainActivity.this, "Perfil salvo com sucesso.", Toast.LENGTH_LONG).show();
+                montarTelaPrincipal();
             }
-        });
+        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+
+        raiz.addView(espaco(10));
+        raiz.addView(bloco("Suas oportunidades publicadas ficam salvas neste aparelho. Na proxima etapa elas vao para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        raiz.addView(espaco(10));
+        raiz.addView(botaoTexto("Voltar", WHITE, INK, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                montarTelaPrincipal();
+            }
+        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+
+        scroll.addView(raiz);
+        setContentViewComNav(scroll, "perfil", false);
+    }
+
+    private View headerSecundario(String titulo, String subtitulo) {
+        LinearLayout header = new LinearLayout(this);
+        header.setOrientation(LinearLayout.VERTICAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(dp(20), dp(18), dp(20), dp(18));
+        header.setBackground(gradient(YELLOW, TANGERINE, dp(28)));
+        header.setElevation(dp(4));
+
+        header.addView(texto(titulo, 26, INK, true));
+        header.addView(texto(subtitulo, 15, Color.rgb(91, 62, 30), true));
+
+        return header;
+    }
+
+    private void setContentViewComNav(View conteudo, String ativo, boolean mostrarFab) {
+        FrameLayout root = new FrameLayout(this);
+        root.setBackgroundColor(CREAM);
+
+        root.addView(conteudo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+
+        LinearLayout nav = bottomNav(ativo);
+        FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(72), Gravity.BOTTOM);
+        root.addView(nav, navLp);
+
+        if (mostrarFab) {
+            TextView fab = texto("+", 30, WHITE, true);
+            fab.setGravity(Gravity.CENTER);
+            fab.setBackground(bg(CORAL, dp(999)));
+            fab.setElevation(dp(8));
+            fab.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    montarTelaPublicar();
+                }
+            });
+
+            FrameLayout.LayoutParams fabLp = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            fabLp.setMargins(0, 0, 0, dp(42));
+            root.addView(fab, fabLp);
+        }
+
+        setContentView(root);
+    }
+
+    private LinearLayout bottomNav(String ativo) {
+        LinearLayout nav = new LinearLayout(this);
+        nav.setOrientation(LinearLayout.HORIZONTAL);
+        nav.setGravity(Gravity.CENTER);
+        nav.setPadding(dp(14), dp(6), dp(14), dp(6));
+        nav.setBackgroundColor(WHITE);
+        nav.setElevation(dp(8));
+
+        nav.addView(navItem("⌂\nInicio", "inicio", ativo, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                filtroAtual = "TODOS";
+                montarTelaPrincipal();
+            }
+        }), pesoNav());
+
+        nav.addView(navItem("⌕\nBuscar", "buscar", ativo, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
+            }
+        }), pesoNav());
+
+        TextView espacoFab = new TextView(this);
+        nav.addView(espacoFab, pesoNav());
+
+        nav.addView(navItem("☏\nChat", "chat", ativo, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this, "Chat interno entra depois do banco online.", Toast.LENGTH_SHORT).show();
+            }
+        }), pesoNav());
+
+        nav.addView(navItem("♙\nPerfil", "perfil", ativo, new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                montarTelaPerfil();
+            }
+        }), pesoNav());
+
+        return nav;
+    }
+
+    private TextView navItem(String texto, String chave, String ativo, View.OnClickListener listener) {
+        boolean isAtivo = chave.equals(ativo);
+        TextView item = texto(texto, 11, isAtivo ? INK : INK_LIGHT, true);
+        item.setGravity(Gravity.CENTER);
+        item.setSingleLine(false);
+        item.setBackground(isAtivo ? bg(Color.rgb(255, 241, 214), dp(18)) : bg(Color.TRANSPARENT, dp(18)));
+        item.setOnClickListener(listener);
         return item;
     }
 
-    private void atualizarLista(String filtro) {
-        filtroAtual = filtro;
-        if (conteudoContainer == null) {
-            return;
-        }
+    private LinearLayout.LayoutParams pesoNav() {
+        return new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
+    }
 
-        conteudoContainer.removeAllViews();
-
+    private int contarFiltro(String filtro) {
         int total = 0;
         for (int i = 0; i < oportunidades.size(); i++) {
             Oportunidade item = oportunidades.get(i);
-            if ("TODOS".equals(filtroAtual) || item.tipo.equals(filtroAtual)) {
-                oportunidade(item);
+            if ("TODOS".equals(filtro) || item.tipo.equals(filtro)) {
                 total++;
             }
         }
-
-        if (total == 0) {
-            conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada nesta categoria.", 15, Color.rgb(71, 85, 105), false, Color.WHITE));
-        }
+        return total;
     }
 
-    private void oportunidade(final Oportunidade item) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(14), dp(14), dp(14), dp(14));
-        card.setBackgroundColor(Color.WHITE);
-
-        card.addView(texto(item.tipo, 12, corTipo(item.tipo), true));
-        card.addView(texto(item.titulo, 20, Color.rgb(15, 23, 42), true));
-        card.addView(texto(item.local, 14, Color.rgb(100, 116, 139), false));
-        card.addView(texto("Publicado por: " + item.autor, 13, Color.rgb(100, 116, 139), false));
-        card.addView(texto(item.valor.length() == 0 ? "Valor a combinar" : item.valor, 16, Color.rgb(22, 163, 74), true));
-        card.addView(texto(item.descricao.length() == 0 ? "Sem descricao informada." : item.descricao, 14, Color.rgb(51, 65, 85), false));
-
-        TextView interesse = bloco("Chamar no WhatsApp", 15, Color.WHITE, true, Color.rgb(15, 23, 42));
-        interesse.setGravity(Gravity.CENTER);
-        interesse.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                abrirWhatsApp(item);
-            }
-        });
-        card.addView(espaco(8));
-        card.addView(interesse, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(44)));
-
-        conteudoContainer.addView(card);
-        conteudoContainer.addView(espaco(10));
+    private String textoPerfilResumo() {
+        String cidade = perfilCidade.trim().length() == 0 ? "Cidade nao informada" : perfilCidade;
+        String tipo = perfilTipoUsuario.trim().length() == 0 ? "Usuario local" : perfilTipoUsuario;
+        return cidade + " - " + tipo;
     }
 
     private void abrirWhatsApp(Oportunidade item) {
@@ -499,6 +710,50 @@ public class MainActivity extends Activity {
         return numero;
     }
 
+    private int tintTipo(String tipo) {
+        if ("URGENTE".equals(tipo)) return URGENTE_TINT;
+        if ("SERVICO".equals(tipo)) return SERVICO_TINT;
+        if ("BICO".equals(tipo)) return BICO_TINT;
+        if ("SEGURANCA".equals(tipo)) return SEGURANCA_TINT;
+        return VAGA_TINT;
+    }
+
+    private int corTipo(String tipo) {
+        if ("URGENTE".equals(tipo)) return CORAL;
+        if ("SERVICO".equals(tipo)) return BLUE;
+        if ("BICO".equals(tipo)) return PURPLE;
+        if ("SEGURANCA".equals(tipo)) return TANGERINE;
+        return GREEN;
+    }
+
+    private String iconTipo(String tipo) {
+        if ("URGENTE".equals(tipo)) return "!";
+        if ("SERVICO".equals(tipo)) return "⚒";
+        if ("BICO".equals(tipo)) return "⚡";
+        if ("SEGURANCA".equals(tipo)) return "✓";
+        return "▣";
+    }
+
+    private String labelTipo(String tipo) {
+        if ("SERVICO".equals(tipo)) return "SERVICO";
+        if ("BICO".equals(tipo)) return "BICO";
+        if ("URGENTE".equals(tipo)) return "URGENTE";
+        if ("SEGURANCA".equals(tipo)) return "SEGURANCA";
+        return "VAGA";
+    }
+
+    private int corPreco(String valor) {
+        if (valor == null) return INK_LIGHT;
+        if (valor.contains("R$")) return Color.rgb(10, 138, 77);
+        return INK_LIGHT;
+    }
+
+    private String distanciaFake(Oportunidade item) {
+        int n = Math.abs((item.titulo + item.local).hashCode()) % 48;
+        if (n < 3) n = n + 1;
+        return n + " km";
+    }
+
     private String codificar(String texto) {
         if (texto == null) return "";
         return Uri.encode(texto);
@@ -514,24 +769,25 @@ public class MainActivity extends Activity {
         editText.setHint(dica);
         editText.setTextSize(15);
         editText.setSingleLine(false);
-        editText.setPadding(dp(12), dp(10), dp(12), dp(10));
-        editText.setBackgroundColor(Color.WHITE);
-        editText.setTextColor(Color.rgb(15, 23, 42));
-        editText.setHintTextColor(Color.rgb(100, 116, 139));
+        editText.setPadding(dp(14), dp(12), dp(14), dp(12));
+        editText.setBackground(bg(WHITE, dp(18)));
+        editText.setTextColor(INK);
+        editText.setHintTextColor(INK_LIGHT);
         return editText;
     }
 
     private TextView botaoTexto(String texto, int fundo, int corTexto, View.OnClickListener listener) {
-        TextView view = bloco(texto, 15, corTexto, true, fundo);
+        TextView view = bloco(texto, 15, corTexto, true, fundo, dp(999));
         view.setGravity(Gravity.CENTER);
         view.setOnClickListener(listener);
+        view.setElevation(dp(2));
         return view;
     }
 
-    private TextView bloco(String texto, int tamanho, int corTexto, boolean negrito, int fundo) {
+    private TextView bloco(String texto, int tamanho, int corTexto, boolean negrito, int fundo, int raio) {
         TextView view = texto(texto, tamanho, corTexto, negrito);
-        view.setPadding(dp(14), dp(12), dp(14), dp(12));
-        view.setBackgroundColor(fundo);
+        view.setPadding(dp(16), dp(13), dp(16), dp(13));
+        view.setBackground(bg(fundo, raio));
         return view;
     }
 
@@ -547,26 +803,28 @@ public class MainActivity extends Activity {
         return view;
     }
 
+    private GradientDrawable bg(int cor, int raio) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setColor(cor);
+        drawable.setCornerRadius(raio);
+        return drawable;
+    }
+
+    private GradientDrawable gradient(int inicio, int fim, int raio) {
+        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{inicio, fim});
+        drawable.setCornerRadius(raio);
+        return drawable;
+    }
+
     private void mostrarTelaErro(Throwable erro) {
         TextView view = new TextView(this);
         view.setText("Chama no Trampo\n\nO app abriu, mas houve erro na tela.\n\n" + erro.getClass().getSimpleName() + "\n" + erro.getMessage());
         view.setTextSize(18);
-        view.setTextColor(Color.WHITE);
+        view.setTextColor(WHITE);
         view.setBackgroundColor(Color.rgb(127, 29, 29));
         view.setGravity(Gravity.CENTER);
         view.setPadding(dp(24), dp(24), dp(24), dp(24));
         setContentView(view);
-    }
-
-    private int corTipo(String tipo) {
-        if ("URGENTE".equals(tipo)) return Color.rgb(220, 38, 38);
-        if ("SERVICO".equals(tipo)) return Color.rgb(37, 99, 235);
-        if ("BICO".equals(tipo)) return Color.rgb(217, 119, 6);
-        return Color.rgb(22, 163, 74);
-    }
-
-    private LinearLayout.LayoutParams peso() {
-        return new LinearLayout.LayoutParams(0, dp(48), 1);
     }
 
     private LinearLayout.LayoutParams larguraAltura(int largura, int altura) {
