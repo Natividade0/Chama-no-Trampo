@@ -1,15 +1,17 @@
-apply plugin: 'com.android.application'
+plugins {
+    id 'com.android.application'
+}
 
 android {
     namespace 'com.chamanotrampo.app'
     compileSdkVersion 33
 
     defaultConfig {
-        applicationId 'com.chamanotrampo.app'
+        applicationId 'com.chamanotrampo.androidide'
         minSdkVersion 23
         targetSdkVersion 33
-        versionCode 1
-        versionName '0.1.0'
+        versionCode 2
+        versionName '0.2.0'
     }
 
     compileOptions {
