@@ -40,6 +40,9 @@ public class MainActivity extends Activity {
     private static final String KEY_SUSPICIOUS = "suspicious_listing_ids";
     private static final String KEY_BLOCKED_AUTHORS = "blocked_author_keys";
 
+    private static final String TYPE_DEMAND = "demanda";
+    private static final String TYPE_OFFER = "oferta";
+
     private static final String STATUS_ACTIVE = "ativo";
     private static final String STATUS_DONE = "concluido";
     private static final String STATUS_EXPIRED = "expirado";
@@ -48,6 +51,7 @@ public class MainActivity extends Activity {
     private static final long DAY = 24L * HOUR;
     private static final long URGENT_TTL = DAY;
     private static final long NORMAL_TTL = 7L * DAY;
+    private static final long OFFER_TTL = 60L * DAY;
 
     private static final int CREAM = Color.rgb(255, 248, 235);
     private static final int ORANGE = Color.rgb(255, 132, 24);
@@ -74,6 +78,7 @@ public class MainActivity extends Activity {
     private String currentScreen = "home";
     private String lastListScreen = "home";
     private String activeFilter = "Todas";
+    private String typeFilter = "Todos";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,10 +118,11 @@ public class MainActivity extends Activity {
 
         if (opportunities.size() == 0) {
             long now = System.currentTimeMillis();
-            opportunities.add(Opportunity.seed("seed1", "Vaga", false, "Auxiliar de producao", "Guariba - Centro", "1,8 km", now - 3L * HOUR, "Salario a combinar", "Ajudar na organizacao da linha, separacao de produtos e apoio geral na producao.", "Mercado Sao Jose", "5516999999999", 4.6, 8));
-            opportunities.add(Opportunity.seed("seed2", "Servico", false, "Pedreiro para reforma", "Jardinopolis - Jardim Primavera", "4,2 km", now - DAY, "Enviar orcamento", "Reforma pequena em banheiro, troca de piso e acabamento. Preferencia para profissionais da regiao.", "Dona Maria", "5516999999999", 4.9, 15));
-            opportunities.add(Opportunity.seed("seed3", "Bico", false, "Ajudante para descarregar caminhao", "Ribeirao Preto - Distrito Industrial", "7,5 km", now - 40L * 60L * 1000L, "R$ 120,00 no dia", "Preciso de ajudante hoje para descarregar mercadorias. Pagamento no final do servico.", "Carlos Fretes", "5516999999999", 4.3, 5));
-            opportunities.add(Opportunity.seed("seed4", "Servico", true, "Eletricista hoje", "Jaboticabal - Nova Jaboticabal", "2,3 km", now - 12L * 60L * 1000L, "A combinar", "Tomadas pararam de funcionar. Preciso de avaliacao e reparo ainda hoje.", "Ana Paula", "5516999999999", 4.7, 11));
+            opportunities.add(Opportunity.seed("seed1", TYPE_DEMAND, "Vaga", false, "Auxiliar de producao", "Guariba - Centro", "1,8 km", now - 3L * HOUR, "Salario a combinar", "Ajudar na organizacao da linha, separacao de produtos e apoio geral na producao.", "Mercado Sao Jose", "5516999999999", 4.6, 8));
+            opportunities.add(Opportunity.seed("seed2", TYPE_DEMAND, "Servico", false, "Pedreiro para reforma", "Jardinopolis - Jardim Primavera", "4,2 km", now - DAY, "Enviar orcamento", "Reforma pequena em banheiro, troca de piso e acabamento. Preferencia para profissionais da regiao.", "Dona Maria", "5516999999999", 4.9, 15));
+            opportunities.add(Opportunity.seed("seed3", TYPE_DEMAND, "Bico", false, "Ajudante para descarregar caminhao", "Ribeirao Preto - Distrito Industrial", "7,5 km", now - 40L * 60L * 1000L, "R$ 120,00 no dia", "Preciso de ajudante hoje para descarregar mercadorias. Pagamento no final do servico.", "Carlos Fretes", "5516999999999", 4.3, 5));
+            opportunities.add(Opportunity.seed("seed4", TYPE_DEMAND, "Servico", true, "Eletricista hoje", "Jaboticabal - Nova Jaboticabal", "2,3 km", now - 12L * 60L * 1000L, "A combinar", "Tomadas pararam de funcionar. Preciso de avaliacao e reparo ainda hoje.", "Ana Paula", "5516999999999", 4.7, 11));
+            opportunities.add(Opportunity.seed("seed5", TYPE_OFFER, "Servico", false, "Pedreiro disponivel para reformas", "Jardinopolis", "4,2 km", now - 2L * HOUR, "A combinar", "Faco pequenos reparos, pisos, pintura e reformas. Atendo na regiao com combinacao por WhatsApp.", "Joao Carlos", "5516988888888", 0.0, 0));
             saveOpportunities();
         }
 
@@ -173,14 +179,14 @@ public class MainActivity extends Activity {
     private void showHome() {
         currentScreen = "home";
         lastListScreen = "home";
-        renderListScreen("Oportunidades perto de voce", "Encontre vagas, bicos e servicos locais.", false, "", false);
+        renderListScreen("Oportunidades perto de voce", "Veja quem precisa contratar e quem esta disponivel.", false, "", false);
     }
 
     private void showSearch() {
         currentScreen = "search";
         lastListScreen = "search";
         String query = searchEditText == null ? "" : searchEditText.getText().toString();
-        renderListScreen("Buscar oportunidades", "Combine texto, categoria e prioridade.", false, query, false);
+        renderListScreen("Buscar oportunidades", "Combine texto, categoria e tipo.", false, query, false);
         focusSearchField();
     }
 
@@ -222,7 +228,8 @@ public class MainActivity extends Activity {
         contentLayout.removeAllViews();
         addHeader(title, subtitle);
         addSearchBox(query, onlyFavorites);
-        addQuickFilters(onlyFavorites);
+        addCategoryFilters(onlyFavorites);
+        addTypeFilters(onlyFavorites);
         emptyText = text("", 16, MUTED, Typeface.NORMAL);
         emptyText.setGravity(Gravity.CENTER);
         emptyText.setPadding(dp(12), dp(24), dp(12), dp(24));
@@ -265,7 +272,7 @@ public class MainActivity extends Activity {
         });
     }
 
-    private void addQuickFilters(final boolean onlyFavorites) {
+    private void addCategoryFilters(final boolean onlyFavorites) {
         HorizontalScrollView scroll = new HorizontalScrollView(this);
         scroll.setHorizontalScrollBarEnabled(false);
         LinearLayout chips = new LinearLayout(this);
@@ -295,15 +302,41 @@ public class MainActivity extends Activity {
         contentLayout.addView(scroll, new LinearLayout.LayoutParams(-1, -2));
     }
 
+    private void addTypeFilters(final boolean onlyFavorites) {
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(8), 0, dp(2));
+        String[] types = new String[]{"Todos", "Preciso", "Ofereco"};
+        for (int i = 0; i < types.length; i++) {
+            final String key = types[i];
+            TextView chip = text(typeLabel(key), 13, key.equals(typeFilter) ? Color.WHITE : TEXT, Typeface.BOLD);
+            chip.setGravity(Gravity.CENTER);
+            chip.setPadding(dp(12), dp(7), dp(12), dp(7));
+            chip.setBackground(key.equals(typeFilter) ? rounded(ORANGE, 18) : roundedStroke(Color.WHITE, 18, BORDER, 1));
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -2, 1);
+            params.setMargins(0, 0, dp(8), 0);
+            row.addView(chip, params);
+            chip.setOnClickListener(new View.OnClickListener() {
+                @Override public void onClick(View v) {
+                    typeFilter = key;
+                    if ("favorites".equals(currentScreen)) showFavorites();
+                    else if ("search".equals(currentScreen)) showSearch();
+                    else showHomeWithCurrentQuery();
+                }
+            });
+        }
+        contentLayout.addView(row, new LinearLayout.LayoutParams(-1, -2));
+    }
+
     private void showHomeWithCurrentQuery() {
         String query = searchEditText == null ? "" : searchEditText.getText().toString();
         currentScreen = "home";
         lastListScreen = "home";
-        renderListScreen("Oportunidades perto de voce", "Encontre vagas, bicos e servicos locais.", false, query, false);
+        renderListScreen("Oportunidades perto de voce", "Veja quem precisa contratar e quem esta disponivel.", false, query, false);
     }
 
     private void renderCards(boolean onlyFavorites, boolean includeExpired) {
-        while (contentLayout.getChildCount() > 4) contentLayout.removeViewAt(4);
+        while (contentLayout.getChildCount() > 5) contentLayout.removeViewAt(5);
         String query = normalize(searchEditText == null ? "" : searchEditText.getText().toString());
         int count = 0;
         long now = System.currentTimeMillis();
@@ -315,8 +348,9 @@ public class MainActivity extends Activity {
             if (hiddenListingIds.contains(item.id)) continue;
             if (blockedAuthorKeys.contains(item.authorKey)) continue;
             if (!matchesFilter(item)) continue;
+            if (!matchesTypeFilter(item)) continue;
             if (query.length() > 0 && !item.matches(query)) continue;
-            contentLayout.addView(cardView(item, false));
+            contentLayout.addView(cardView(item));
             count++;
         }
 
@@ -347,6 +381,10 @@ public class MainActivity extends Activity {
         top.setOrientation(LinearLayout.HORIZONTAL);
         top.setGravity(Gravity.CENTER_VERTICAL);
         top.addView(badgeText(categoryIcon(item.category) + " " + displayCategory(item.category).toUpperCase(), TEXT, SOFT, 14));
+        TextView typeBadge = badgeText(typeBadgeText(item.listingType), item.isOffer() ? Color.WHITE : TEXT, item.isOffer() ? GREEN : Color.rgb(255, 244, 225), 14);
+        LinearLayout.LayoutParams typeParams = new LinearLayout.LayoutParams(-2, -2);
+        typeParams.setMargins(dp(6), 0, 0, 0);
+        top.addView(typeBadge, typeParams);
         if (item.urgent) {
             TextView urgent = badgeText("! URGENTE", Color.WHITE, RED, 14);
             LinearLayout.LayoutParams urgentParams = new LinearLayout.LayoutParams(-2, -2);
@@ -384,7 +422,7 @@ public class MainActivity extends Activity {
         LinearLayout smallBadges = new LinearLayout(this);
         smallBadges.setOrientation(LinearLayout.HORIZONTAL);
         smallBadges.setPadding(0, dp(8), 0, 0);
-        smallBadges.addView(tinyBadge("Contato direto"));
+        smallBadges.addView(tinyBadge(item.isOffer() ? "Profissional disponivel" : "Contato direto"));
         if (isMine(item)) smallBadges.addView(tinyBadge("Minha publicacao"));
         if (suspiciousListingIds.contains(item.id)) smallBadges.addView(tinyBadge("Marcado como suspeito"));
         card.addView(smallBadges);
@@ -425,12 +463,16 @@ public class MainActivity extends Activity {
         if (!"details".equals(currentScreen)) lastListScreen = currentScreen;
         currentScreen = "details";
         contentLayout.removeAllViews();
-        addHeader("Detalhes da oportunidade", "Veja as informacoes antes de chamar.");
+        addHeader("Detalhes da oportunidade", item.isOffer() ? "Veja o perfil antes de chamar." : "Veja as informacoes antes de chamar.");
 
         LinearLayout badges = new LinearLayout(this);
         badges.setOrientation(LinearLayout.HORIZONTAL);
         badges.setPadding(0, dp(16), 0, 0);
         badges.addView(badgeText(categoryIcon(item.category) + " " + displayCategory(item.category).toUpperCase(), TEXT, SOFT, 14));
+        TextView typeBadge = badgeText(typeBadgeText(item.listingType), item.isOffer() ? Color.WHITE : TEXT, item.isOffer() ? GREEN : Color.rgb(255, 244, 225), 14);
+        LinearLayout.LayoutParams typeParams = new LinearLayout.LayoutParams(-2, -2);
+        typeParams.setMargins(dp(6), 0, 0, 0);
+        badges.addView(typeBadge, typeParams);
         if (item.urgent) {
             TextView urgent = badgeText("! URGENTE", Color.WHITE, RED, 14);
             LinearLayout.LayoutParams urgentParams = new LinearLayout.LayoutParams(-2, -2);
@@ -494,6 +536,16 @@ public class MainActivity extends Activity {
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(12), dp(4), dp(12), 0);
 
+        final String[] selectedType = new String[]{TYPE_DEMAND};
+        final ArrayList<Button> typeButtons = new ArrayList<Button>();
+        form.addView(text("O que voce quer fazer?", 14, TEXT, Typeface.BOLD));
+        LinearLayout typeRow = new LinearLayout(this);
+        typeRow.setOrientation(LinearLayout.HORIZONTAL);
+        form.addView(typeRow);
+        addTypeButton(typeRow, typeButtons, selectedType, TYPE_DEMAND, "Preciso de alguem");
+        addTypeButton(typeRow, typeButtons, selectedType, TYPE_OFFER, "Estou disponivel");
+        refreshTypeButtons(typeButtons, selectedType[0]);
+
         final String[] selectedCategory = new String[]{"Vaga"};
         final ArrayList<Button> categoryButtons = new ArrayList<Button>();
         form.addView(text("Categoria", 14, TEXT, Typeface.BOLD));
@@ -513,7 +565,7 @@ public class MainActivity extends Activity {
         urgentCheck.setTextColor(TEXT);
         form.addView(urgentCheck);
 
-        final EditText title = field("Titulo");
+        final EditText title = field("Titulo: o que voce precisa ou oferece");
         final EditText place = field("Cidade/local");
         final EditText value = field("Valor");
         final EditText desc = field("Descricao");
@@ -542,6 +594,7 @@ public class MainActivity extends Activity {
                                 "local" + now,
                                 deviceId,
                                 authorKeyFor(phoneNumber, authorName),
+                                selectedType[0],
                                 selectedCategory[0],
                                 urgentCheck.isChecked(),
                                 title.getText().toString(),
@@ -553,7 +606,7 @@ public class MainActivity extends Activity {
                                 phoneNumber,
                                 STATUS_ACTIVE,
                                 now,
-                                now + (urgentCheck.isChecked() ? URGENT_TTL : NORMAL_TTL),
+                                now + ttlFor(selectedType[0], urgentCheck.isChecked()),
                                 false,
                                 0.0,
                                 0);
@@ -649,7 +702,7 @@ public class MainActivity extends Activity {
         if ("mine".equals(currentScreen)) { showProfile(); return; }
         if ("profile".equals(currentScreen) || "favorites".equals(currentScreen) || "search".equals(currentScreen)) { showHome(); return; }
         if (searchEditText != null && searchEditText.getText().toString().trim().length() > 0) { showHome(); return; }
-        if (!"Todas".equals(activeFilter)) { activeFilter = "Todas"; showHome(); return; }
+        if (!"Todas".equals(activeFilter) || !"Todos".equals(typeFilter)) { activeFilter = "Todas"; typeFilter = "Todos"; showHome(); return; }
         if (!"home".equals(currentScreen)) { showHome(); return; }
         super.onBackPressed();
     }
@@ -722,7 +775,7 @@ public class MainActivity extends Activity {
     private void renewListing(Opportunity item) {
         long now = System.currentTimeMillis();
         item.createdAt = now;
-        item.expiresAt = now + (item.urgent ? URGENT_TTL : NORMAL_TTL);
+        item.expiresAt = now + ttlFor(item.listingType, item.urgent);
         item.status = STATUS_ACTIVE;
         saveOpportunities();
         Toast.makeText(this, "Anuncio renovado.", Toast.LENGTH_LONG).show();
@@ -739,7 +792,9 @@ public class MainActivity extends Activity {
     }
 
     private void abrirWhatsapp(Opportunity item) {
-        String mensagem = "Ola! Vi a oportunidade '" + item.title + "' no Chama no Trampo e tenho interesse.";
+        String mensagem = item.isOffer()
+                ? "Ola! Vi seu anuncio '" + item.title + "' no Chama no Trampo e tenho interesse."
+                : "Ola! Vi a oportunidade '" + item.title + "' no Chama no Trampo e tenho interesse.";
         String url = "https://wa.me/" + item.phone + "?text=" + Uri.encode(mensagem);
         try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
         catch (Exception erro) { Toast.makeText(this, "Nao foi possivel abrir o WhatsApp.", Toast.LENGTH_LONG).show(); }
@@ -812,6 +867,32 @@ public class MainActivity extends Activity {
         params.setMargins(0, dp(10), 0, 0);
         editText.setLayoutParams(params);
         return editText;
+    }
+
+    private void addTypeButton(LinearLayout row, final ArrayList<Button> buttons, final String[] selectedType, final String value, String label) {
+        final Button button = smallButton(label, Color.WHITE, TEXT);
+        button.setTag(value);
+        buttons.add(button);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(44), 1);
+        params.setMargins(0, dp(8), dp(8), 0);
+        row.addView(button, params);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                selectedType[0] = value;
+                refreshTypeButtons(buttons, selectedType[0]);
+            }
+        });
+    }
+
+    private void refreshTypeButtons(ArrayList<Button> buttons, String selected) {
+        for (int i = 0; i < buttons.size(); i++) {
+            Button b = buttons.get(i);
+            String value = String.valueOf(b.getTag());
+            boolean active = value.equals(selected);
+            b.setText(TYPE_OFFER.equals(value) ? "Ofereco trabalho" : "Preciso de alguem");
+            b.setTextColor(active ? Color.WHITE : TEXT);
+            b.setBackground(active ? rounded(ORANGE, 16) : roundedStroke(Color.WHITE, 16, BORDER, 1));
+        }
     }
 
     private void addCategoryButton(LinearLayout row, final ArrayList<Button> buttons, final String[] selectedCategory, final String category) {
@@ -888,10 +969,23 @@ public class MainActivity extends Activity {
         return normalizeCategory(item.category).equals(activeFilter);
     }
 
+    private boolean matchesTypeFilter(Opportunity item) {
+        if ("Todos".equals(typeFilter)) return true;
+        if ("Preciso".equals(typeFilter)) return TYPE_DEMAND.equals(item.listingType);
+        if ("Ofereco".equals(typeFilter)) return TYPE_OFFER.equals(item.listingType);
+        return true;
+    }
+
     private String filterLabel(String key) {
         if ("Todas".equals(key)) return "Todas";
         if ("Servico".equals(key)) return "Servicos";
         return key;
+    }
+
+    private String typeLabel(String key) {
+        if ("Preciso".equals(key)) return "Preciso contratar";
+        if ("Ofereco".equals(key)) return "Ofereco trabalho";
+        return "Todos os tipos";
     }
 
     private String normalizeCategory(String value) {
@@ -912,8 +1006,13 @@ public class MainActivity extends Activity {
         return "[S]";
     }
 
+    private String typeBadgeText(String listingType) {
+        if (TYPE_OFFER.equals(listingType)) return "OFERECO";
+        return "PRECISO";
+    }
+
     private String trustText(Opportunity item) {
-        if (item.demo) return "Publicado por " + item.author + "   * " + ratingText(item.rating) + " · " + item.posts + " publicacoes";
+        if (item.demo && item.rating > 0) return "Publicado por " + item.author + "   * " + ratingText(item.rating) + " · " + item.posts + " publicacoes";
         return "Publicado por " + item.author + " · Novo anunciante · Sem avaliacoes ainda";
     }
 
@@ -936,16 +1035,25 @@ public class MainActivity extends Activity {
         return "unknown_" + normalize(author).replace(" ", "_");
     }
 
-    private static class Opportunity {
-        String id; String ownerDeviceId; String authorKey; String category; boolean urgent; String title; String place; String distance; String value; String description; String author; String phone; String status; long createdAt; long expiresAt; boolean demo; double rating; int posts;
+    private long ttlFor(String listingType, boolean urgent) {
+        if (TYPE_OFFER.equals(listingType)) return OFFER_TTL;
+        return urgent ? URGENT_TTL : NORMAL_TTL;
+    }
 
-        Opportunity(String id, String ownerDeviceId, String authorKey, String category, boolean urgent, String title, String place, String distance, String value, String description, String author, String phone, String status, long createdAt, long expiresAt, boolean demo, double rating, int posts) {
-            this.id = id; this.ownerDeviceId = ownerDeviceId; this.authorKey = authorKey; this.category = category; this.urgent = urgent; this.title = title; this.place = place; this.distance = distance; this.value = value; this.description = description; this.author = author; this.phone = phone; this.status = status; this.createdAt = createdAt; this.expiresAt = expiresAt; this.demo = demo; this.rating = rating; this.posts = posts;
+    private static class Opportunity {
+        String id; String ownerDeviceId; String authorKey; String listingType; String category; boolean urgent; String title; String place; String distance; String value; String description; String author; String phone; String status; long createdAt; long expiresAt; boolean demo; double rating; int posts;
+
+        Opportunity(String id, String ownerDeviceId, String authorKey, String listingType, String category, boolean urgent, String title, String place, String distance, String value, String description, String author, String phone, String status, long createdAt, long expiresAt, boolean demo, double rating, int posts) {
+            this.id = id; this.ownerDeviceId = ownerDeviceId; this.authorKey = authorKey; this.listingType = listingType; this.category = category; this.urgent = urgent; this.title = title; this.place = place; this.distance = distance; this.value = value; this.description = description; this.author = author; this.phone = phone; this.status = status; this.createdAt = createdAt; this.expiresAt = expiresAt; this.demo = demo; this.rating = rating; this.posts = posts;
         }
 
-        static Opportunity seed(String id, String category, boolean urgent, String title, String place, String distance, long createdAt, String value, String description, String author, String phone, double rating, int posts) {
-            long ttl = urgent ? URGENT_TTL : NORMAL_TTL;
-            return new Opportunity(id, "seed", "phone_" + phone, category, urgent, title, place, distance, value, description, author, phone, STATUS_ACTIVE, createdAt, createdAt + ttl, true, rating, posts);
+        static Opportunity seed(String id, String listingType, String category, boolean urgent, String title, String place, String distance, long createdAt, String value, String description, String author, String phone, double rating, int posts) {
+            long ttl = TYPE_OFFER.equals(listingType) ? OFFER_TTL : (urgent ? URGENT_TTL : NORMAL_TTL);
+            return new Opportunity(id, "seed", "phone_" + phone, listingType, category, urgent, title, place, distance, value, description, author, phone, STATUS_ACTIVE, createdAt, createdAt + ttl, true, rating, posts);
+        }
+
+        boolean isOffer() {
+            return TYPE_OFFER.equals(listingType);
         }
 
         String resolvedStatus(long now) {
@@ -968,33 +1076,37 @@ public class MainActivity extends Activity {
             if (diff <= 0) return "Expirado";
             if (diff < HOUR) return "Expira em menos de 1h";
             if (diff < DAY) return "Expira em " + (diff / HOUR) + "h";
-            return "Expira em " + (diff / DAY) + " dia" + ((diff / DAY) > 1 ? "s" : "");
+            return (isOffer() ? "Disponivel por " : "Expira em ") + (diff / DAY) + " dia" + ((diff / DAY) > 1 ? "s" : "");
         }
 
         boolean matches(String query) {
-            String data = (title + " " + description + " " + place + " " + category + " " + value + " " + author + " " + (urgent ? "urgente prioridade hoje" : "")).toLowerCase();
+            String typeWords = isOffer() ? "oferta ofereco disponivel profissional" : "demanda preciso contratar vaga";
+            String data = (title + " " + description + " " + place + " " + category + " " + value + " " + author + " " + typeWords + " " + (urgent ? "urgente prioridade hoje" : "")).toLowerCase();
             return data.contains(query);
         }
 
         String toStorage() {
-            return clean(id) + "|" + clean(ownerDeviceId) + "|" + clean(authorKey) + "|" + clean(category) + "|" + urgent + "|" + clean(title) + "|" + clean(place) + "|" + clean(distance) + "|" + clean(value) + "|" + clean(description) + "|" + clean(author) + "|" + clean(phone) + "|" + clean(status) + "|" + createdAt + "|" + expiresAt + "|" + demo + "|" + rating + "|" + posts;
+            return clean(id) + "|" + clean(ownerDeviceId) + "|" + clean(authorKey) + "|" + clean(listingType) + "|" + clean(category) + "|" + urgent + "|" + clean(title) + "|" + clean(place) + "|" + clean(distance) + "|" + clean(value) + "|" + clean(description) + "|" + clean(author) + "|" + clean(phone) + "|" + clean(status) + "|" + createdAt + "|" + expiresAt + "|" + demo + "|" + rating + "|" + posts;
         }
 
         static Opportunity fromStorage(String row, String deviceId) {
             String[] p = row.split("\\|", -1);
+            if (p.length >= 19) {
+                return new Opportunity(p[0], p[1], p[2], p[3].length() == 0 ? TYPE_DEMAND : p[3], p[4], "true".equals(p[5]), p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], parseLong(p[14], System.currentTimeMillis()), parseLong(p[15], System.currentTimeMillis() + NORMAL_TTL), "true".equals(p[16]), parseDouble(p[17], 0.0), parseInt(p[18], 0));
+            }
             if (p.length >= 18) {
-                return new Opportunity(p[0], p[1], p[2], p[3], "true".equals(p[4]), p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], parseLong(p[13], System.currentTimeMillis()), parseLong(p[14], System.currentTimeMillis() + NORMAL_TTL), "true".equals(p[15]), parseDouble(p[16], 0.0), parseInt(p[17], 0));
+                return new Opportunity(p[0], p[1], p[2], TYPE_DEMAND, p[3], "true".equals(p[4]), p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], parseLong(p[13], System.currentTimeMillis()), parseLong(p[14], System.currentTimeMillis() + NORMAL_TTL), "true".equals(p[15]), parseDouble(p[16], 0.0), parseInt(p[17], 0));
             }
             if (p.length >= 13) {
                 long now = System.currentTimeMillis();
                 boolean urgent = "true".equals(p[2]);
-                return new Opportunity(p[0], p[0].startsWith("local") ? deviceId : "seed", "phone_" + p[10], p[1], urgent, p[3], p[4], p[5], p[7], p[8], p[9], p[10], STATUS_ACTIVE, now - HOUR, now + (urgent ? URGENT_TTL : NORMAL_TTL), !p[0].startsWith("local"), parseDouble(p[11], 0.0), parseInt(p[12], 0));
+                return new Opportunity(p[0], p[0].startsWith("local") ? deviceId : "seed", "phone_" + p[10], TYPE_DEMAND, p[1], urgent, p[3], p[4], p[5], p[7], p[8], p[9], p[10], STATUS_ACTIVE, now - HOUR, now + (urgent ? URGENT_TTL : NORMAL_TTL), !p[0].startsWith("local"), parseDouble(p[11], 0.0), parseInt(p[12], 0));
             }
             if (p.length >= 9) {
                 long now = System.currentTimeMillis();
                 boolean urgent = p[1].toLowerCase().contains("urgent");
                 String category = urgent ? "Servico" : p[1];
-                return new Opportunity(p[0], p[0].startsWith("local") ? deviceId : "seed", "phone_" + p[8], category, urgent, p[2], p[3], p[4], p[5], p[6], p[7], p[8], STATUS_ACTIVE, now - HOUR, now + (urgent ? URGENT_TTL : NORMAL_TTL), !p[0].startsWith("local"), p[0].startsWith("local") ? 0.0 : 4.4, p[0].startsWith("local") ? 0 : 5);
+                return new Opportunity(p[0], p[0].startsWith("local") ? deviceId : "seed", "phone_" + p[8], TYPE_DEMAND, category, urgent, p[2], p[3], p[4], p[5], p[6], p[7], p[8], STATUS_ACTIVE, now - HOUR, now + (urgent ? URGENT_TTL : NORMAL_TTL), !p[0].startsWith("local"), p[0].startsWith("local") ? 0.0 : 4.4, p[0].startsWith("local") ? 0 : 5);
             }
             return null;
         }
