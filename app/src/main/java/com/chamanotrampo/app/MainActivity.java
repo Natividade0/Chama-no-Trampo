@@ -158,9 +158,12 @@ public class MainActivity extends Activity {
             item.category = normalizeCategory(item.category);
             item.title = fixText(item.title);
             item.place = fixText(item.place);
+            item.distance = fixText(item.distance);
+            if (normalize(item.distance).contains("perto de voce")) item.distance = "distância não informada";
             item.value = fixText(item.value);
             item.description = fixText(item.description);
             item.author = fixText(item.author);
+            item.phone = normalizePhoneForWhatsApp(item.phone);
             if (!old.equals(item.toStorage())) changed = true;
         }
         return changed;
@@ -175,11 +178,13 @@ public class MainActivity extends Activity {
                 .replace("organizacao", "organização")
                 .replace("separacao", "separação")
                 .replace("orcamento", "orçamento")
+                .replace("Orcamento", "Orçamento")
                 .replace("Preferencia", "Preferência")
                 .replace("regiao", "região")
                 .replace("caminhao", "caminhão")
                 .replace("Ribeirao", "Ribeirão")
                 .replace("servico", "serviço")
+                .replace("Servico", "Serviço")
                 .replace("avaliacao", "avaliação")
                 .replace("disponivel", "disponível")
                 .replace("disponiveis", "disponíveis")
@@ -188,7 +193,8 @@ public class MainActivity extends Activity {
                 .replace("Jardinopolis", "Jardinópolis")
                 .replace("Sao", "São")
                 .replace("Jose", "José")
-                .replace("Joao", "João");
+                .replace("Joao", "João")
+                .replace("voce", "você");
     }
 
     private boolean hasListing(String id) {
@@ -522,7 +528,7 @@ public class MainActivity extends Activity {
         TextView title = text(item.title, 20, TEXT, Typeface.BOLD);
         title.setPadding(0, dp(7), 0, 0);
         card.addView(title);
-        card.addView(text(item.place + " · " + item.distance, 14, MUTED, Typeface.NORMAL));
+        card.addView(text(locationText(item), 14, MUTED, Typeface.NORMAL));
         TextView value = text(item.value, 16, GREEN, Typeface.BOLD);
         value.setPadding(0, dp(6), 0, 0);
         card.addView(value);
@@ -622,7 +628,7 @@ public class MainActivity extends Activity {
         contentLayout.addView(badges);
 
         contentLayout.addView(detailText(item.title, 25, TEXT, Typeface.BOLD));
-        contentLayout.addView(detailText(item.place + " · " + item.distance, 16, MUTED, Typeface.NORMAL));
+        contentLayout.addView(detailText(locationText(item), 16, MUTED, Typeface.NORMAL));
         contentLayout.addView(detailText("Publicado " + item.timeAgo(System.currentTimeMillis()) + "\n" + item.expiryLabel(System.currentTimeMillis()), 15, MUTED, Typeface.NORMAL));
         contentLayout.addView(detailText(item.value, 18, GREEN, Typeface.BOLD));
         contentLayout.addView(detailText(item.description, 16, TEXT, Typeface.NORMAL));
@@ -634,8 +640,11 @@ public class MainActivity extends Activity {
 
         if (STATUS_ACTIVE.equals(status)) {
             Button whatsapp = bigButton("Chamar no WhatsApp", GREEN, Color.WHITE);
+            Button share = bigButton("Compartilhar anúncio", SOFT, TEXT);
             contentLayout.addView(whatsapp);
+            contentLayout.addView(share);
             whatsapp.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { abrirWhatsapp(item); } });
+            share.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { shareListing(item); } });
         }
 
         Button favorite = bigButton(favoriteIds.contains(item.id) ? "★ Remover dos salvos" : "☆ Salvar oportunidade", ORANGE, Color.WHITE);
@@ -681,7 +690,7 @@ public class MainActivity extends Activity {
         addHeader("Perfil público", "Informações básicas do anunciante.");
         contentLayout.addView(detailText(item.author, 26, TEXT, Typeface.BOLD));
         contentLayout.addView(detailText("Cidade/local: " + item.place, 16, MUTED, Typeface.NORMAL));
-        contentLayout.addView(detailText("Contato: " + item.phone, 16, MUTED, Typeface.NORMAL));
+        contentLayout.addView(detailText("Contato: " + (isValidWhatsAppNumber(item.phone) ? item.phone : "não informado"), 16, MUTED, Typeface.NORMAL));
         contentLayout.addView(detailText(item.isOffer() ? "Tipo: oferece trabalho" : "Tipo: publica demandas", 16, TEXT, Typeface.BOLD));
         contentLayout.addView(detailText("Anúncios ativos neste aparelho: " + countActiveByAuthor(item.authorKey), 16, TEXT, Typeface.NORMAL));
         contentLayout.addView(detailText(item.demo && item.rating > 0 ? "Reputação visual de exemplo: " + ratingText(item.rating) : "Sem avaliações reais ainda", 15, MUTED, Typeface.BOLD));
@@ -717,14 +726,19 @@ public class MainActivity extends Activity {
         form.setOrientation(LinearLayout.VERTICAL);
         form.setPadding(dp(12), dp(4), dp(12), 0);
 
+        final CheckBox urgentCheck = new CheckBox(this);
+        urgentCheck.setText("Marcar como urgente");
+        urgentCheck.setTextColor(TEXT);
+        urgentCheck.setChecked(editing && editItem.urgent);
+
         final String[] selectedType = new String[]{editing ? editItem.listingType : TYPE_DEMAND};
         final ArrayList<Button> typeButtons = new ArrayList<Button>();
         form.addView(text("O que você quer fazer?", 14, TEXT, Typeface.BOLD));
         LinearLayout typeRow = new LinearLayout(this);
         typeRow.setOrientation(LinearLayout.HORIZONTAL);
         form.addView(typeRow);
-        addTypeButton(typeRow, typeButtons, selectedType, TYPE_DEMAND, "Preciso de alguém");
-        addTypeButton(typeRow, typeButtons, selectedType, TYPE_OFFER, "Estou disponível");
+        addTypeButton(typeRow, typeButtons, selectedType, TYPE_DEMAND, "Preciso de alguém", urgentCheck);
+        addTypeButton(typeRow, typeButtons, selectedType, TYPE_OFFER, "Estou disponível", urgentCheck);
         refreshTypeButtons(typeButtons, selectedType[0]);
 
         final String[] selectedCategory = new String[]{editing ? editItem.category : "Vaga"};
@@ -741,11 +755,8 @@ public class MainActivity extends Activity {
         addCategoryButton(row2, categoryButtons, selectedCategory, "Servico");
         refreshCategoryButtons(categoryButtons, selectedCategory[0]);
 
-        final CheckBox urgentCheck = new CheckBox(this);
-        urgentCheck.setText("Marcar como urgente");
-        urgentCheck.setTextColor(TEXT);
-        urgentCheck.setChecked(editing && editItem.urgent);
         form.addView(urgentCheck);
+        updateUrgentVisibility(urgentCheck, selectedType[0]);
 
         final EditText title = field("Título: o que você precisa ou oferece");
         final EditText place = field("Cidade/local");
@@ -781,12 +792,16 @@ public class MainActivity extends Activity {
                             return;
                         }
                         String authorName = textOr(author, prefs.getString(KEY_PROFILE, "Visitante"));
-                        String phoneNumber = onlyDigits(textOr(phone, "5516999999999"));
+                        String phoneNumber = normalizePhoneForWhatsApp(phone.getText().toString());
+                        if (!isValidWhatsAppNumber(phoneNumber)) {
+                            Toast.makeText(MainActivity.this, "Informe um WhatsApp válido com DDD. Ex: 5516999999999 ou 16999999999.", Toast.LENGTH_LONG).show();
+                            return;
+                        }
                         long now = System.currentTimeMillis();
                         if (editing) {
                             editItem.listingType = selectedType[0];
                             editItem.category = selectedCategory[0];
-                            editItem.urgent = urgentCheck.isChecked();
+                            editItem.urgent = TYPE_DEMAND.equals(selectedType[0]) && urgentCheck.isChecked();
                             editItem.title = title.getText().toString();
                             editItem.place = place.getText().toString();
                             editItem.value = textOr(value, "A combinar");
@@ -794,14 +809,12 @@ public class MainActivity extends Activity {
                             editItem.author = authorName;
                             editItem.phone = phoneNumber;
                             editItem.authorKey = authorKeyFor(phoneNumber, authorName);
-                            editItem.status = STATUS_ACTIVE;
-                            editItem.expiresAt = now + ttlFor(editItem.listingType, editItem.urgent);
                             saveOpportunities();
-                            Toast.makeText(MainActivity.this, "Anúncio atualizado.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this, "Anúncio atualizado. A edição não renova o prazo.", Toast.LENGTH_LONG).show();
                             dialog.dismiss();
                             showMyPublications();
                         } else {
-                            Opportunity item = new Opportunity("local" + now, deviceId, authorKeyFor(phoneNumber, authorName), selectedType[0], selectedCategory[0], urgentCheck.isChecked(), title.getText().toString(), place.getText().toString(), "perto de você", textOr(value, "A combinar"), textOr(desc, "Sem descrição informada."), authorName, phoneNumber, STATUS_ACTIVE, now, now + ttlFor(selectedType[0], urgentCheck.isChecked()), false, 0.0, 0);
+                            Opportunity item = new Opportunity("local" + now, deviceId, authorKeyFor(phoneNumber, authorName), selectedType[0], selectedCategory[0], TYPE_DEMAND.equals(selectedType[0]) && urgentCheck.isChecked(), title.getText().toString(), place.getText().toString(), "distância não informada", textOr(value, "A combinar"), textOr(desc, "Sem descrição informada."), authorName, phoneNumber, STATUS_ACTIVE, now, now + ttlFor(selectedType[0], urgentCheck.isChecked()), false, 0.0, 0);
                             opportunities.add(0, item);
                             saveOpportunities();
                             Toast.makeText(MainActivity.this, "Oportunidade publicada localmente.", Toast.LENGTH_LONG).show();
@@ -843,10 +856,11 @@ public class MainActivity extends Activity {
         contentLayout.addView(detailText("Publicações locais: " + countLocal() + "\nOportunidades salvas: " + favoriteIds.size(), 16, TEXT, Typeface.NORMAL));
         save.setOnClickListener(new View.OnClickListener() {
             @Override public void onClick(View v) {
+                String normalizedPhone = normalizePhoneForWhatsApp(phone.getText().toString());
                 prefs.edit()
                         .putString(KEY_PROFILE, name.getText().toString())
                         .putString(KEY_PROFILE_CITY, city.getText().toString())
-                        .putString(KEY_PROFILE_PHONE, onlyDigits(phone.getText().toString()))
+                        .putString(KEY_PROFILE_PHONE, normalizedPhone)
                         .putString(KEY_PROFILE_KIND, kind.getText().toString())
                         .apply();
                 Toast.makeText(MainActivity.this, "Perfil salvo.", Toast.LENGTH_LONG).show();
@@ -974,7 +988,7 @@ public class MainActivity extends Activity {
     private void blockAuthor(final Opportunity item) {
         new AlertDialog.Builder(this)
                 .setTitle("Bloquear anunciante?")
-                .setMessage("Novos anúncios com este mesmo telefone ficarão ocultos neste aparelho.")
+                .setMessage("Este bloqueio local usa o telefone do anunciante. Se a mesma pessoa publicar com outro número, este aparelho não consegue reconhecer automaticamente.")
                 .setNegativeButton("Cancelar", null)
                 .setPositiveButton("Bloquear", new DialogInterface.OnClickListener() {
                     @Override public void onClick(DialogInterface dialog, int which) {
@@ -1034,12 +1048,32 @@ public class MainActivity extends Activity {
     }
 
     private void abrirWhatsapp(Opportunity item) {
+        String phone = normalizePhoneForWhatsApp(item.phone);
+        if (!isValidWhatsAppNumber(phone)) {
+            Toast.makeText(this, "Número de WhatsApp inválido ou não informado neste anúncio.", Toast.LENGTH_LONG).show();
+            return;
+        }
         String mensagem = item.isOffer()
                 ? "Olá! Vi seu anúncio '" + item.title + "' no Chama no Trampo e tenho interesse."
                 : "Olá! Vi a oportunidade '" + item.title + "' no Chama no Trampo e tenho interesse.";
-        String url = "https://wa.me/" + item.phone + "?text=" + Uri.encode(mensagem);
+        String url = "https://wa.me/" + phone + "?text=" + Uri.encode(mensagem);
         try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
-        catch (Exception erro) { Toast.makeText(this, "Não foi possível abrir o WhatsApp.", Toast.LENGTH_LONG).show(); }
+        catch (Exception erro) { Toast.makeText(this, "Não foi possível abrir. Verifique se o WhatsApp está instalado.", Toast.LENGTH_LONG).show(); }
+    }
+
+    private void shareListing(Opportunity item) {
+        StringBuilder message = new StringBuilder();
+        message.append(item.isOffer() ? "Oferta no Chama no Trampo" : "Oportunidade no Chama no Trampo");
+        message.append("\n\n").append(item.title);
+        message.append("\n").append(locationText(item));
+        message.append("\n").append(item.value);
+        message.append("\n\n").append(item.description);
+        message.append("\n\nContato: ").append(isValidWhatsAppNumber(item.phone) ? item.phone : "não informado");
+        Intent sendIntent = new Intent(Intent.ACTION_SEND);
+        sendIntent.setType("text/plain");
+        sendIntent.putExtra(Intent.EXTRA_TEXT, message.toString());
+        try { startActivity(Intent.createChooser(sendIntent, "Compartilhar anúncio")); }
+        catch (Exception e) { Toast.makeText(this, "Não foi possível compartilhar este anúncio.", Toast.LENGTH_LONG).show(); }
     }
 
     private TextView text(String value, int sp, int color, int style) {
@@ -1111,7 +1145,7 @@ public class MainActivity extends Activity {
         return editText;
     }
 
-    private void addTypeButton(LinearLayout row, final ArrayList<Button> buttons, final String[] selectedType, final String value, String label) {
+    private void addTypeButton(LinearLayout row, final ArrayList<Button> buttons, final String[] selectedType, final String value, String label, final CheckBox urgentCheck) {
         final Button button = smallButton(label, Color.WHITE, TEXT);
         button.setTag(value);
         buttons.add(button);
@@ -1122,6 +1156,7 @@ public class MainActivity extends Activity {
             @Override public void onClick(View v) {
                 selectedType[0] = value;
                 refreshTypeButtons(buttons, selectedType[0]);
+                updateUrgentVisibility(urgentCheck, selectedType[0]);
             }
         });
     }
@@ -1134,6 +1169,16 @@ public class MainActivity extends Activity {
             b.setText(TYPE_OFFER.equals(value) ? "Ofereço trabalho" : "Preciso de alguém");
             b.setTextColor(active ? Color.WHITE : TEXT);
             b.setBackground(active ? rounded(ORANGE, 16) : roundedStroke(Color.WHITE, 16, BORDER, 1));
+        }
+    }
+
+    private void updateUrgentVisibility(CheckBox urgentCheck, String listingType) {
+        if (urgentCheck == null) return;
+        if (TYPE_OFFER.equals(listingType)) {
+            urgentCheck.setChecked(false);
+            urgentCheck.setVisibility(View.GONE);
+        } else {
+            urgentCheck.setVisibility(View.VISIBLE);
         }
     }
 
@@ -1273,22 +1318,38 @@ public class MainActivity extends Activity {
         return "Publicado por " + item.author + " · Novo anunciante · Sem avaliações ainda";
     }
 
+    private String locationText(Opportunity item) {
+        if (item.distance == null || item.distance.length() == 0) return item.place;
+        return item.place + " · " + item.distance;
+    }
+
     private String ratingText(double rating) {
         return String.format(Locale.US, "%.1f", rating);
     }
 
     private String onlyDigits(String value) {
         StringBuilder out = new StringBuilder();
-        if (value == null) return "5516999999999";
+        if (value == null) return "";
         for (int i = 0; i < value.length(); i++) {
             char c = value.charAt(i);
             if (c >= '0' && c <= '9') out.append(c);
         }
-        return out.length() == 0 ? "5516999999999" : out.toString();
+        return out.toString();
+    }
+
+    private String normalizePhoneForWhatsApp(String value) {
+        String digits = onlyDigits(value);
+        if (digits.length() == 10 || digits.length() == 11) return "55" + digits;
+        return digits;
+    }
+
+    private boolean isValidWhatsAppNumber(String value) {
+        String digits = normalizePhoneForWhatsApp(value);
+        return (digits.length() == 12 || digits.length() == 13) && digits.startsWith("55");
     }
 
     private String authorKeyFor(String phone, String author) {
-        String digits = onlyDigits(phone);
+        String digits = normalizePhoneForWhatsApp(phone);
         if (digits.length() > 0) return "phone_" + digits;
         return "unknown_" + normalize(author).replace(" ", "_");
     }
