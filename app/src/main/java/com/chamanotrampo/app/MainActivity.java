@@ -8,6 +8,8 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.EditText;
@@ -105,6 +107,10 @@ public class MainActivity extends Activity {
             for (int i = 0; i < linhas.length; i++) {
                 String[] campos = linhas[i].split("\\|", -1);
                 if (campos.length >= 7) {
+                    int interestCount = 0;
+                    if (campos.length >= 8) {
+                        interestCount = inteiroSeguro(decodificar(campos[7]));
+                    }
                     oportunidades.add(new Oportunidade(
                             decodificar(campos[0]),
                             decodificar(campos[1]),
@@ -112,18 +118,19 @@ public class MainActivity extends Activity {
                             decodificar(campos[3]),
                             decodificar(campos[4]),
                             decodificar(campos[5]),
-                            decodificar(campos[6])
+                            decodificar(campos[6]),
+                            interestCount
                     ));
                 }
             }
         }
 
         if (oportunidades.isEmpty()) {
-            oportunidades.add(new Oportunidade("VAGA", "Auxiliar de producao", "Guariba - Centro", "Salario a combinar", "Empresa local buscando inicio imediato.", "16999999999", "Equipe Chama no Trampo"));
-            oportunidades.add(new Oportunidade("SERVICO", "Pedreiro para reforma", "Jardinopolis", "Enviar orcamento", "Cliente precisa reformar uma area pequena.", "16999999999", "Equipe Chama no Trampo"));
-            oportunidades.add(new Oportunidade("BICO", "Ajudante para descarregar caminhao", "Ribeirao Preto", "R$ 120,00 no dia", "Servico rapido, pagamento no mesmo dia.", "16999999999", "Equipe Chama no Trampo"));
+            oportunidades.add(new Oportunidade("VAGA", "Auxiliar de produção", "Guariba - Centro", "Salário a combinar", "Empresa local buscando início imediato.", "16999999999", "Equipe Chama no Trampo"));
+            oportunidades.add(new Oportunidade("SERVICO", "Pedreiro para reforma", "Jardinópolis", "Enviar orçamento", "Cliente precisa reformar uma área pequena.", "16999999999", "Equipe Chama no Trampo"));
+            oportunidades.add(new Oportunidade("BICO", "Ajudante para descarregar caminhão", "Ribeirão Preto", "R$ 120,00 no dia", "Serviço rápido, pagamento no mesmo dia.", "16999999999", "Equipe Chama no Trampo"));
             oportunidades.add(new Oportunidade("URGENTE", "Eletricista hoje", "Jaboticabal", "Valor a combinar", "Atendimento ainda hoje.", "16999999999", "Equipe Chama no Trampo"));
-            oportunidades.add(new Oportunidade("SEGURANCA", "Tecnico de seguranca do trabalho", "Ribeirao Preto e regiao", "Enviar pretensao", "Acompanhamento de obra e documentacao.", "16999999999", "Equipe Chama no Trampo"));
+            oportunidades.add(new Oportunidade("SEGURANCA", "Técnico de segurança do trabalho", "Ribeirão Preto e região", "Enviar pretensão", "Acompanhamento de obra e documentação.", "16999999999", "Equipe Chama no Trampo"));
         }
     }
 
@@ -137,7 +144,8 @@ public class MainActivity extends Activity {
                     .append(codificar(item.valor)).append("|")
                     .append(codificar(item.descricao)).append("|")
                     .append(codificar(item.contato)).append("|")
-                    .append(codificar(item.autor));
+                    .append(codificar(item.autor)).append("|")
+                    .append(codificar(String.valueOf(item.interestCount)));
             if (i < oportunidades.size() - 1) {
                 builder.append("\n");
             }
@@ -188,7 +196,7 @@ public class MainActivity extends Activity {
 
         TextView marca = texto("Chama no Trampo", 29, INK, true);
         marca.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        TextView subtitulo = texto("Empregos, bicos e servicos perto de voce", 15, Color.rgb(91, 62, 30), true);
+        TextView subtitulo = texto("Empregos, bicos e serviços perto de você", 15, Color.rgb(91, 62, 30), true);
 
         header.addView(marca);
         header.addView(subtitulo);
@@ -222,7 +230,7 @@ public class MainActivity extends Activity {
         box.setBackground(bg(WHITE, dp(18)));
         box.setElevation(dp(3));
 
-        TextView linha = texto("Falta pouco! Complete seu perfil e apareca mais nas buscas", 14, INK, true);
+        TextView linha = texto("Falta pouco! Complete seu perfil e apareça mais nas buscas", 14, INK, true);
         box.addView(linha);
         box.addView(espaco(8));
 
@@ -261,7 +269,7 @@ public class MainActivity extends Activity {
         box.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Busca avançada entra na próxima etapa.", Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -279,9 +287,9 @@ public class MainActivity extends Activity {
         linha.addView(chip("Todos", "TODOS"));
         linha.addView(chip("Vagas", "VAGA"));
         linha.addView(chip("Bicos", "BICO"));
-        linha.addView(chip("Servicos", "SERVICO"));
+        linha.addView(chip("Serviços", "SERVICO"));
         linha.addView(chip("Urgentes", "URGENTE"));
-        linha.addView(chip("Seguranca", "SEGURANCA"));
+        linha.addView(chip("Segurança", "SEGURANCA"));
 
         horizontal.addView(linha);
         return horizontal;
@@ -314,7 +322,7 @@ public class MainActivity extends Activity {
 
     private View sectionLabel() {
         int total = contarFiltro(filtroAtual);
-        String categoria = "TODOS".equals(filtroAtual) ? "perto de voce" : filtroAtual.toLowerCase();
+        String categoria = "TODOS".equals(filtroAtual) ? "perto de você" : filtroAtual.toLowerCase();
         return texto(total + " oportunidades " + categoria, 14, INK_LIGHT, true);
     }
 
@@ -337,7 +345,7 @@ public class MainActivity extends Activity {
         }
 
         if (total == 0) {
-            conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada nesta categoria.", 15, INK_LIGHT, false, WHITE, dp(18)));
+            conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada para essa busca.", 15, INK_LIGHT, false, WHITE, dp(18)));
         }
     }
 
@@ -382,12 +390,13 @@ public class MainActivity extends Activity {
 
         card.addView(texto(item.local, 14, INK_LIGHT, true));
 
-        String autor = item.autor == null || item.autor.trim().length() == 0 ? "Usuario local" : item.autor;
+        String autor = item.autor == null || item.autor.trim().length() == 0 ? "Usuário local" : item.autor;
         card.addView(texto("por " + autor, 12, INK_LIGHT, false));
 
         card.addView(espaco(4));
         card.addView(texto(item.valor.length() == 0 ? "Valor a combinar" : item.valor, 15, corPreco(item.valor), true));
-        card.addView(texto(item.descricao.length() == 0 ? "Sem descricao informada." : item.descricao, 14, Color.rgb(86, 76, 114), false));
+        card.addView(texto(item.descricao.length() == 0 ? "Sem descrição informada." : item.descricao, 14, Color.rgb(86, 76, 114), false));
+        card.addView(texto(textoInteresse(item), 13, INK_LIGHT, true));
         card.addView(espaco(12));
 
         TextView cta = texto("☎  Chamar no WhatsApp", 15, WHITE, true);
@@ -415,19 +424,19 @@ public class MainActivity extends Activity {
         raiz.setOrientation(LinearLayout.VERTICAL);
         raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
 
-        raiz.addView(headerSecundario("Publicar oportunidade", "Cadastre uma vaga, bico ou servico."));
+        raiz.addView(headerSecundario("Publicar oportunidade", "Cadastre uma vaga, bico ou serviço."));
         raiz.addView(espaco(12));
 
         if (!perfilCompleto()) {
-            raiz.addView(bloco("Dica: cadastre seu perfil antes de publicar para passar mais confianca.", 14, WHITE, true, TANGERINE, dp(18)));
+            raiz.addView(bloco("Dica: cadastre seu perfil antes de publicar para passar mais confiança.", 14, WHITE, true, TANGERINE, dp(18)));
             raiz.addView(espaco(10));
         }
 
-        final EditText tipo = campo("Tipo: VAGA, BICO, SERVICO, URGENTE ou SEGURANCA");
-        final EditText titulo = campo("Titulo da oportunidade");
+        final EditText tipo = campo("Tipo: DEMANDA, OFERTA, VAGA, BICO, SERVICO ou URGENTE");
+        final EditText titulo = campo("Título da oportunidade");
         final EditText cidade = campo("Cidade / bairro");
-        final EditText valor = campo("Valor ou salario");
-        final EditText descricao = campo("Descricao");
+        final EditText valor = campo("Valor ou salário");
+        final EditText descricao = campo("Descrição");
         final EditText contato = campo("WhatsApp para contato");
 
         if (perfilTelefone.trim().length() > 0) {
@@ -436,6 +445,7 @@ public class MainActivity extends Activity {
         if (perfilCidade.trim().length() > 0) {
             cidade.setText(perfilCidade);
         }
+        aplicarExemplosPublicacao(tipo, titulo, descricao);
 
         raiz.addView(tipo);
         raiz.addView(espaco(8));
@@ -453,7 +463,7 @@ public class MainActivity extends Activity {
         raiz.addView(botaoTexto("Salvar oportunidade", GREEN, WHITE, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                String tipoTexto = tipo.getText().toString().trim().toUpperCase();
+                String tipoTexto = normalizarTipo(tipo.getText().toString().trim());
                 String tituloTexto = titulo.getText().toString().trim();
                 String cidadeTexto = cidade.getText().toString().trim();
                 String valorTexto = valor.getText().toString().trim();
@@ -462,13 +472,18 @@ public class MainActivity extends Activity {
 
                 if (tipoTexto.length() == 0) tipoTexto = "BICO";
 
-                if (tituloTexto.length() == 0 || cidadeTexto.length() == 0 || contatoTexto.length() == 0) {
-                    Toast.makeText(MainActivity.this, "Preencha titulo, cidade e contato.", Toast.LENGTH_LONG).show();
+                if (contatoTexto.length() == 0) {
+                    Toast.makeText(MainActivity.this, "Informe um WhatsApp válido para receber contatos.", Toast.LENGTH_LONG).show();
                     return;
                 }
 
-                String autor = perfilNome.trim().length() == 0 ? "Usuario local" : perfilNome;
-                oportunidades.add(0, new Oportunidade(tipoTexto, tituloTexto, cidadeTexto, valorTexto, descricaoTexto, contatoTexto, autor));
+                if (tituloTexto.length() == 0 || cidadeTexto.length() == 0) {
+                    Toast.makeText(MainActivity.this, "Preencha título e cidade.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                String autor = perfilNome.trim().length() == 0 ? "Usuário local" : perfilNome;
+                oportunidades.add(0, new Oportunidade(tipoTexto, tituloTexto, cidadeTexto, valorTexto, descricaoTexto, contatoTexto, autor, 0));
                 salvarOportunidades();
                 filtroAtual = "TODOS";
                 Toast.makeText(MainActivity.this, "Oportunidade publicada e salva neste aparelho.", Toast.LENGTH_LONG).show();
@@ -496,13 +511,13 @@ public class MainActivity extends Activity {
         raiz.setOrientation(LinearLayout.VERTICAL);
         raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
 
-        raiz.addView(headerSecundario("Meu perfil", "Crie uma identidade para publicar e negociar com mais confianca."));
+        raiz.addView(headerSecundario("Meu perfil", "Crie uma identidade para publicar e negociar com mais confiança."));
         raiz.addView(espaco(12));
 
         final EditText nome = campo("Seu nome ou nome da empresa");
         final EditText cidade = campo("Cidade / bairro");
         final EditText telefone = campo("WhatsApp para contato");
-        final EditText tipoUsuario = campo("Tipo: Trabalhador, Contratante, Empresa ou Autonomo");
+        final EditText tipoUsuario = campo("Tipo: Trabalhador, Contratante, Empresa ou Autônomo");
 
         nome.setText(perfilNome);
         cidade.setText(perfilCidade);
@@ -532,7 +547,7 @@ public class MainActivity extends Activity {
                 }
 
                 if (tipoTexto.length() == 0) {
-                    tipoTexto = "Usuario local";
+                    tipoTexto = "Usuário local";
                 }
 
                 salvarPerfil(nomeTexto, cidadeTexto, telefoneTexto, tipoTexto);
@@ -542,7 +557,11 @@ public class MainActivity extends Activity {
         }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
 
         raiz.addView(espaco(10));
-        raiz.addView(bloco("Suas oportunidades publicadas ficam salvas neste aparelho. Na proxima etapa elas vao para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        raiz.addView(bloco("Suas oportunidades publicadas ficam salvas neste aparelho. Na próxima etapa elas vão para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        raiz.addView(espaco(10));
+        raiz.addView(texto("Minhas publicações", 18, INK, true));
+        raiz.addView(espaco(8));
+        adicionarMinhasPublicacoes(raiz);
         raiz.addView(espaco(10));
         raiz.addView(botaoTexto("Voltar", WHITE, INK, new View.OnClickListener() {
             @Override
@@ -607,7 +626,7 @@ public class MainActivity extends Activity {
         nav.setBackgroundColor(WHITE);
         nav.setElevation(dp(8));
 
-        nav.addView(navItem("⌂\nInicio", "inicio", ativo, new View.OnClickListener() {
+        nav.addView(navItem("⌂\nInício", "inicio", ativo, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 filtroAtual = "TODOS";
@@ -618,7 +637,7 @@ public class MainActivity extends Activity {
         nav.addView(navItem("⌕\nBuscar", "buscar", ativo, new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Busca avançada entra na próxima etapa.", Toast.LENGTH_SHORT).show();
             }
         }), pesoNav());
 
@@ -668,19 +687,46 @@ public class MainActivity extends Activity {
     }
 
     private String textoPerfilResumo() {
-        String cidade = perfilCidade.trim().length() == 0 ? "Cidade nao informada" : perfilCidade;
-        String tipo = perfilTipoUsuario.trim().length() == 0 ? "Usuario local" : perfilTipoUsuario;
+        String cidade = perfilCidade.trim().length() == 0 ? "Cidade não informada" : perfilCidade;
+        String tipo = perfilTipoUsuario.trim().length() == 0 ? "Usuário local" : perfilTipoUsuario;
         return cidade + " - " + tipo;
+    }
+
+    private void adicionarMinhasPublicacoes(LinearLayout raiz) {
+        int total = 0;
+        for (int i = 0; i < oportunidades.size(); i++) {
+            Oportunidade item = oportunidades.get(i);
+            String autor = item.autor == null ? "" : item.autor.trim();
+            if (perfilNome.trim().length() > 0 && autor.equals(perfilNome.trim())) {
+                LinearLayout card = new LinearLayout(this);
+                card.setOrientation(LinearLayout.VERTICAL);
+                card.setPadding(dp(16), dp(12), dp(16), dp(12));
+                card.setBackground(bg(WHITE, dp(18)));
+                card.addView(texto(item.titulo, 15, INK, true));
+                card.addView(texto(labelTipo(item.tipo) + " • " + item.local, 12, INK_LIGHT, false));
+                card.addView(texto("Interesses: " + item.interestCount, 13, corTipo(item.tipo), true));
+                raiz.addView(card);
+                raiz.addView(espaco(8));
+                total++;
+            }
+        }
+
+        if (total == 0) {
+            raiz.addView(bloco("Você ainda não publicou nenhuma oportunidade.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        }
     }
 
     private void abrirWhatsApp(Oportunidade item) {
         String numero = limparNumero(item.contato);
         if (numero.length() == 0) {
-            Toast.makeText(this, "Contato nao informado.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Contato não informado.", Toast.LENGTH_LONG).show();
             return;
         }
 
-        String mensagem = "Ola, vi sua oportunidade no Chama no Trampo e tenho interesse.\n\n" +
+        item.interestCount++;
+        salvarOportunidades();
+
+        String mensagem = "Olá, vi sua oportunidade no Chama no Trampo e tenho interesse.\n\n" +
                 "Oportunidade: " + item.titulo + "\n" +
                 "Local: " + item.local;
 
@@ -690,8 +736,18 @@ public class MainActivity extends Activity {
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             startActivity(intent);
         } catch (Exception erro) {
-            Toast.makeText(this, "Nao consegui abrir o WhatsApp neste aparelho.", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Não consegui abrir o WhatsApp neste aparelho.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private String textoInteresse(Oportunidade item) {
+        if (item.interestCount <= 0) {
+            return "Nenhum interesse registrado ainda";
+        }
+        if (item.interestCount == 1) {
+            return "1 pessoa demonstrou interesse";
+        }
+        return item.interestCount + " pessoas demonstraram interesse";
     }
 
     private String limparNumero(String contato) {
@@ -735,11 +791,11 @@ public class MainActivity extends Activity {
     }
 
     private String labelTipo(String tipo) {
-        if ("SERVICO".equals(tipo)) return "SERVICO";
-        if ("BICO".equals(tipo)) return "BICO";
-        if ("URGENTE".equals(tipo)) return "URGENTE";
-        if ("SEGURANCA".equals(tipo)) return "SEGURANCA";
-        return "VAGA";
+        if ("SERVICO".equals(tipo)) return "🛠 Serviço";
+        if ("BICO".equals(tipo)) return "📦 Bico";
+        if ("URGENTE".equals(tipo)) return "🚨 Urgente";
+        if ("SEGURANCA".equals(tipo)) return "🛠 Serviço";
+        return "💼 Vaga";
     }
 
     private int corPreco(String valor) {
@@ -762,6 +818,62 @@ public class MainActivity extends Activity {
     private String decodificar(String texto) {
         if (texto == null) return "";
         return Uri.decode(texto);
+    }
+
+    private int inteiroSeguro(String texto) {
+        try {
+            return Integer.parseInt(texto);
+        } catch (Exception erro) {
+            return 0;
+        }
+    }
+
+    private String normalizarTipo(String texto) {
+        String tipo = texto.toUpperCase()
+                .replace("Ç", "C")
+                .replace("É", "E");
+        if ("DEMANDA".equals(tipo)) {
+            return "BICO";
+        }
+        if ("OFERTA".equals(tipo)) {
+            return "SERVICO";
+        }
+        if (tipo.length() == 0) {
+            return "BICO";
+        }
+        return tipo;
+    }
+
+    private void aplicarExemplosPublicacao(final EditText tipo, final EditText titulo, final EditText descricao) {
+        tipo.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                atualizarExemplosPublicacao(tipo.getText().toString(), titulo, descricao);
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+            }
+        });
+        atualizarExemplosPublicacao(tipo.getText().toString(), titulo, descricao);
+    }
+
+    private void atualizarExemplosPublicacao(String tipoTexto, EditText titulo, EditText descricao) {
+        String tipo = tipoTexto.toUpperCase();
+        if ("DEMANDA".equals(tipo)) {
+            titulo.setHint("Ex: Pedreiro para reboco de parede");
+            descricao.setHint("Ex: Preciso do serviço ainda esta semana...");
+        } else if ("OFERTA".equals(tipo)) {
+            titulo.setHint("Ex: Pedreiro disponível para reformas");
+            descricao.setHint("Ex: Trabalho com acabamento, pintura e reboco...");
+        } else {
+            titulo.setHint("Título da oportunidade");
+            descricao.setHint("Descrição");
+        }
     }
 
     private EditText campo(String dica) {
@@ -855,8 +967,13 @@ public class MainActivity extends Activity {
         String descricao;
         String contato;
         String autor;
+        int interestCount;
 
         Oportunidade(String tipo, String titulo, String local, String valor, String descricao, String contato, String autor) {
+            this(tipo, titulo, local, valor, descricao, contato, autor, 0);
+        }
+
+        Oportunidade(String tipo, String titulo, String local, String valor, String descricao, String contato, String autor, int interestCount) {
             this.tipo = tipo;
             this.titulo = titulo;
             this.local = local;
@@ -864,6 +981,7 @@ public class MainActivity extends Activity {
             this.descricao = descricao;
             this.contato = contato;
             this.autor = autor;
+            this.interestCount = interestCount;
         }
     }
 }
