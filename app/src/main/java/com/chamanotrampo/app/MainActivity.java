@@ -43,6 +43,7 @@ public class MainActivity extends Activity {
     private static final String KEY_HIDDEN = "hidden_listing_ids";
     private static final String KEY_SUSPICIOUS = "suspicious_listing_ids";
     private static final String KEY_BLOCKED_AUTHORS = "blocked_author_keys";
+    private static final String KEY_INTERESTED_LISTINGS = "interested_listing_ids";
     private static final String KEY_ENTRY_SEEN = "entry_seen";
     private static final String KEY_APP_MODE = "app_mode";
 
@@ -81,6 +82,7 @@ public class MainActivity extends Activity {
     private HashSet<String> hiddenListingIds;
     private HashSet<String> suspiciousListingIds;
     private HashSet<String> blockedAuthorKeys;
+    private HashSet<String> interestedListingIds;
     private String deviceId;
     private String currentScreen = "home";
     private String lastListScreen = "home";
@@ -113,6 +115,7 @@ public class MainActivity extends Activity {
         hiddenListingIds = readSet(KEY_HIDDEN);
         suspiciousListingIds = readSet(KEY_SUSPICIOUS);
         blockedAuthorKeys = readSet(KEY_BLOCKED_AUTHORS);
+        interestedListingIds = readSet(KEY_INTERESTED_LISTINGS);
         opportunities = new ArrayList<Opportunity>();
 
         String saved = prefs.getString(KEY_OPPORTUNITIES, "");
@@ -1089,10 +1092,12 @@ public class MainActivity extends Activity {
                         favoriteIds.remove(item.id);
                         hiddenListingIds.remove(item.id);
                         suspiciousListingIds.remove(item.id);
+                        interestedListingIds.remove(item.id);
                         saveOpportunities();
                         saveSet(KEY_FAVORITES, favoriteIds);
                         saveSet(KEY_HIDDEN, hiddenListingIds);
                         saveSet(KEY_SUSPICIOUS, suspiciousListingIds);
+                        saveSet(KEY_INTERESTED_LISTINGS, interestedListingIds);
                         Toast.makeText(MainActivity.this, "Anúncio excluído.", Toast.LENGTH_LONG).show();
                         showMyPublications();
                     }
@@ -1114,12 +1119,16 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Número de WhatsApp inválido ou não informado neste anúncio.", Toast.LENGTH_LONG).show();
             return;
         }
-        item.interestCount++;
-        saveOpportunities();
+        if (!interestedListingIds.contains(item.id)) {
+            interestedListingIds.add(item.id);
+            item.interestCount++;
+            saveOpportunities();
+            saveSet(KEY_INTERESTED_LISTINGS, interestedListingIds);
+        }
         String mensagem = item.isOffer() ? "Olá! Vi seu anúncio '" + item.title + "' no Chama no Trampo e tenho interesse." : "Olá! Vi a oportunidade '" + item.title + "' no Chama no Trampo e tenho interesse.";
         String url = "https://wa.me/" + phone + "?text=" + Uri.encode(mensagem);
         try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
-        catch (Exception erro) { Toast.makeText(this, "Interesse registrado, mas não foi possível abrir o WhatsApp. Verifique se ele está instalado.", Toast.LENGTH_LONG).show(); }
+        catch (Exception erro) { Toast.makeText(this, "Não foi possível abrir o WhatsApp. Verifique se ele está instalado.", Toast.LENGTH_LONG).show(); }
     }
 
     private void shareListing(Opportunity item) {
