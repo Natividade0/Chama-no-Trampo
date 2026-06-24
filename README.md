@@ -65,6 +65,31 @@ Proposta -> Detalhes -> Conversa -> Combinado -> Concluido -> Avaliacao
 - Avisos internos salvos no aparelho
 - ID local para novas oportunidades
 
+## Refatoracao atual
+
+A `MainActivity.java` foi reescrita em formato legivel, com metodos separados por responsabilidade:
+
+- carregamento e salvamento local;
+- home e filtros;
+- busca;
+- detalhes da oportunidade;
+- favoritos;
+- avisos internos;
+- conversa;
+- avaliacao;
+- publicacao;
+- perfil;
+- componentes visuais reutilizaveis.
+
+O botao/gesto de voltar do Android tambem foi organizado por tela:
+
+- na Home, volta fecha o app;
+- em Detalhes, volta retorna para a origem correta;
+- no Chat, volta retorna para Detalhes;
+- em Avaliacao, volta retorna para Chat;
+- em Resultado de busca, volta retorna para a tela de busca;
+- nas demais telas, volta retorna para Home.
+
 ## Proximas etapas
 
 - Teste manual no AndroidIDE
