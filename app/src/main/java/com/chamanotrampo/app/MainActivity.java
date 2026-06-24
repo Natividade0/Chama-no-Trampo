@@ -1119,6 +1119,7 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Número de WhatsApp inválido ou não informado neste anúncio.", Toast.LENGTH_LONG).show();
             return;
         }
+        Toast.makeText(this, "Confira os dados do anúncio antes de combinar pelo WhatsApp.", Toast.LENGTH_LONG).show();
         if (!interestedListingIds.contains(item.id)) {
             interestedListingIds.add(item.id);
             item.interestCount++;
