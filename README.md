@@ -18,13 +18,19 @@ A ideia central e simples:
 
 ## MVP atual
 
-Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp, negociacao local por proposta e avaliacao apos conclusao.
+Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp, negociacao local por proposta, avaliacao apos conclusao, busca funcional, favoritos e avisos internos.
 
 Funcionalidades atuais:
 
 - Tela inicial com identidade do app
 - Lista de oportunidades locais
 - Filtro por categoria
+- Busca funcional por titulo, cidade, valor, descricao, autor e categoria
+- Sugestoes rapidas de busca
+- Favoritos locais por oportunidade
+- Tela de favoritos
+- Central de avisos internos
+- Avisos para favoritos, mensagens, conclusoes, avaliacoes e publicacoes
 - Formulario para publicar oportunidade
 - Perfil local do usuario
 - Oportunidades salvas no aparelho
@@ -50,17 +56,21 @@ Funcionalidades atuais:
 
 Proposta -> Conversa -> Combinado -> Concluido -> Avaliacao
 
+## Recursos locais adicionados
+
+- Busca dentro das oportunidades salvas
+- Favoritos salvos no aparelho
+- Avisos internos salvos no aparelho
+
 ## Proximas etapas
 
-- Ranking e reputacao do perfil
-- Busca funcional
-- Favoritos
 - Tela completa de detalhes
+- Ranking e reputacao do perfil
 - Integracao com Firebase Auth
 - Cadastro de usuario/profissional/empresa
-- Firestore para salvar oportunidades, conversas e avaliacoes reais
+- Firestore para salvar oportunidades, conversas, favoritos, avisos e avaliacoes reais
 - Anuncios destacados
-- Notificacoes
+- Notificacoes push reais
 
 ## Stack inicial
 
