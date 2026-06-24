@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
     private static final String PREFS = "chama_no_trampo_prefs";
     private static final String KEY_OPPORTUNITIES = "opportunities";
     private static final String KEY_PROPOSALS = "proposals";
+    private static final String KEY_MESSAGES = "proposal_messages";
     private static final String KEY_FAVORITES = "favorites";
     private static final String KEY_PROFILE = "profile_name";
     private static final String KEY_PROFILE_CITY = "profile_city";
@@ -58,6 +59,9 @@ public class MainActivity extends Activity {
     private static final String PROP_DECLINED = "recusada";
     private static final String PROP_DONE = "concluida";
 
+    private static final String ROLE_OWNER = "owner";
+    private static final String ROLE_PROPOSER = "proposer";
+
     private static final long HOUR = 60L * 60L * 1000L;
     private static final long DAY = 24L * HOUR;
     private static final long URGENT_TTL = DAY;
@@ -81,6 +85,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private ArrayList<Opportunity> opportunities;
     private ArrayList<Proposal> proposals;
+    private ArrayList<ChatMessage> messages;
     private HashSet<String> favoriteIds;
     private HashSet<String> hiddenListingIds;
     private HashSet<String> suspiciousListingIds;
@@ -119,6 +124,7 @@ public class MainActivity extends Activity {
         interestedListingIds = readSet(KEY_INTERESTED_LISTINGS);
         opportunities = new ArrayList<Opportunity>();
         proposals = new ArrayList<Proposal>();
+        messages = new ArrayList<ChatMessage>();
 
         String saved = prefs.getString(KEY_OPPORTUNITIES, "");
         if (saved.length() > 0) {
@@ -135,6 +141,15 @@ public class MainActivity extends Activity {
             for (int i = 0; i < rows.length; i++) {
                 Proposal proposal = Proposal.fromStorage(rows[i]);
                 if (proposal != null) proposals.add(proposal);
+            }
+        }
+
+        String savedMessages = prefs.getString(KEY_MESSAGES, "");
+        if (savedMessages.length() > 0) {
+            String[] rows = savedMessages.split("\\n");
+            for (int i = 0; i < rows.length; i++) {
+                ChatMessage msg = ChatMessage.fromStorage(rows[i]);
+                if (msg != null) messages.add(msg);
             }
         }
 
@@ -184,8 +199,8 @@ public class MainActivity extends Activity {
         currentScreen = "entry";
         bottomNav.setVisibility(View.GONE);
         clear();
-        addHeader("Chama no Trampo", "Agora com propostas locais antes do WhatsApp.");
-        contentLayout.addView(detailText("Teste o fluxo completo: publicar, receber proposta, aceitar, combinar e concluir. Tudo fica salvo apenas neste aparelho até a integração com Firebase.", 16, TEXT, Typeface.NORMAL));
+        addHeader("Chama no Trampo", "Agora com propostas e conversa local antes do WhatsApp.");
+        contentLayout.addView(detailText("Teste o fluxo completo: publicar, receber proposta, conversar, aceitar, combinar e concluir. Tudo fica salvo apenas neste aparelho até a integração com Firebase.", 16, TEXT, Typeface.NORMAL));
         Button local = bigButton("Continuar testando localmente", GREEN, Color.WHITE);
         contentLayout.addView(local);
         local.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { prefs.edit().putBoolean(KEY_ENTRY_SEEN, true).apply(); showHome(); } });
@@ -195,7 +210,7 @@ public class MainActivity extends Activity {
         currentScreen = "home";
         lastListScreen = "home";
         clear();
-        addHeader("Chama no Trampo", "Oportunidades, propostas e negociações locais.");
+        addHeader("Chama no Trampo", "Oportunidades, propostas e conversas locais.");
         addStatsPanel();
         addTypeFilters();
         addSearchBox("");
@@ -209,7 +224,7 @@ public class MainActivity extends Activity {
         row.setPadding(0, dp(12), 0, dp(2));
         row.addView(statBox("Abertos", String.valueOf(countOpenListings())), new LinearLayout.LayoutParams(0, -2, 1));
         row.addView(statBox("Propostas", String.valueOf(proposals.size())), new LinearLayout.LayoutParams(0, -2, 1));
-        row.addView(statBox("Combinados", String.valueOf(countAcceptedProposals())), new LinearLayout.LayoutParams(0, -2, 1));
+        row.addView(statBox("Mensagens", String.valueOf(messages.size())), new LinearLayout.LayoutParams(0, -2, 1));
         contentLayout.addView(row);
     }
 
@@ -300,7 +315,7 @@ public class MainActivity extends Activity {
         card.addView(detailText(item.value, 16, GREEN, Typeface.BOLD));
         card.addView(detailText(item.description, 14, TEXT, Typeface.NORMAL));
         card.addView(detailText("Publicado por " + item.author + " · " + interestText(item), 13, MUTED, Typeface.BOLD));
-        card.addView(detailText(proposalSummary(item), 14, ORANGE, Typeface.BOLD));
+        card.addView(detailText(proposalSummary(item) + " · " + messageSummary(item.id), 14, ORANGE, Typeface.BOLD));
 
         LinearLayout row = actionRow();
         Button details = smallButton("Detalhes", SOFT, TEXT);
@@ -329,7 +344,7 @@ public class MainActivity extends Activity {
         contentLayout.addView(detailText(locationText(item), 16, MUTED, Typeface.NORMAL));
         contentLayout.addView(detailText(item.value, 19, GREEN, Typeface.BOLD));
         contentLayout.addView(detailText(item.description, 16, TEXT, Typeface.NORMAL));
-        contentLayout.addView(detailText("Anunciante: " + item.author + "\n" + interestText(item) + "\n" + proposalSummary(item), 15, MUTED, Typeface.BOLD));
+        contentLayout.addView(detailText("Anunciante: " + item.author + "\n" + interestText(item) + "\n" + proposalSummary(item) + "\n" + messageSummary(item.id), 15, MUTED, Typeface.BOLD));
 
         if (isMine(item)) {
             Button proposalsBtn = bigButton("Ver propostas recebidas", ORANGE, Color.WHITE);
@@ -370,7 +385,7 @@ public class MainActivity extends Activity {
         final EditText message = field("Mensagem para o anunciante");
         name.setText(prefs.getString(KEY_PROFILE, ""));
         phone.setText(prefs.getString(KEY_PROFILE_PHONE, ""));
-        form.addView(detailText("Envie uma proposta antes de ir para o WhatsApp. O anunciante poderá aceitar, recusar ou concluir a negociação.", 14, MUTED, Typeface.NORMAL));
+        form.addView(detailText("Envie uma proposta. Depois vocês podem conversar dentro do app e usar WhatsApp só para finalizar.", 14, MUTED, Typeface.NORMAL));
         form.addView(name); form.addView(phone); form.addView(value); form.addView(deadline); form.addView(message);
 
         final AlertDialog dialog = new AlertDialog.Builder(this)
@@ -391,16 +406,18 @@ public class MainActivity extends Activity {
                         long now = System.currentTimeMillis();
                         Proposal proposal = new Proposal("prop" + now, item.id, item.title, deviceId, name.getText().toString().trim(), phoneNumber, textOr(value, "A combinar"), textOr(deadline, "A combinar"), textOr(message, "Tenho interesse e gostaria de combinar."), PROP_SENT, now);
                         proposals.add(0, proposal);
+                        addMessage(proposal, ROLE_PROPOSER, proposal.fromName, proposal.message);
                         saveProposals();
+                        saveMessages();
                         if (!interestedListingIds.contains(item.id)) {
                             interestedListingIds.add(item.id);
                             item.interestCount++;
                             saveOpportunities();
                             saveSet(KEY_INTERESTED_LISTINGS, interestedListingIds);
                         }
-                        Toast.makeText(MainActivity.this, "Proposta enviada localmente.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(MainActivity.this, "Proposta enviada. A conversa foi aberta.", Toast.LENGTH_LONG).show();
                         dialog.dismiss();
-                        showProposalCenter();
+                        showProposalChat(proposal, item, false);
                     }
                 });
             }
@@ -411,7 +428,7 @@ public class MainActivity extends Activity {
     private void showProposalCenter() {
         currentScreen = "proposals";
         clear();
-        addHeader("Propostas", "Acompanhe negociações enviadas e recebidas.");
+        addHeader("Propostas", "Acompanhe negociações, conversas e acordos.");
         int received = 0;
         for (int i = 0; i < proposals.size(); i++) {
             Proposal p = proposals.get(i);
@@ -455,29 +472,166 @@ public class MainActivity extends Activity {
         buildBottomNav();
     }
 
-    private View proposalCard(final Proposal p, final Opportunity item, boolean ownerMode) {
+    private View proposalCard(final Proposal p, final Opportunity item, final boolean ownerMode) {
         LinearLayout card = baseCard();
-        card.addView(badgeText(proposalStatusLabel(p.status), Color.WHITE, proposalStatusColor(p.status)));
+        card.addView(badgeText(proposalStatusLabel(p), Color.WHITE, proposalStatusColor(p.status)));
         card.addView(detailText(p.listingTitle, 18, TEXT, Typeface.BOLD));
-        card.addView(detailText("Proposta de " + p.fromName + "\nValor: " + p.value + "\nPrazo: " + p.deadline + "\nMensagem: " + p.message, 15, TEXT, Typeface.NORMAL));
+        card.addView(detailText("Proposta de " + p.fromName + "\nValor: " + p.value + "\nPrazo: " + p.deadline + "\nMensagem: " + p.message + "\n" + chatSummary(p.id), 15, TEXT, Typeface.NORMAL));
         LinearLayout row = actionRow();
+        Button chat = smallButton("Conversa", ORANGE, Color.WHITE);
         Button contact = smallButton("WhatsApp", GREEN, Color.WHITE);
-        row.addView(contact, new LinearLayout.LayoutParams(0, dp(44), 1));
+        row.addView(chat, new LinearLayout.LayoutParams(0, dp(44), 1));
+        row.addView(contact, sideParams());
+        chat.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { showProposalChat(p, item, ownerMode); } });
         contact.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { openWhatsApp(p.phone, "Olá, vi sua proposta no Chama no Trampo sobre: " + p.listingTitle); } });
         if (ownerMode && PROP_SENT.equals(p.status)) {
             Button accept = smallButton("Aceitar", ORANGE, Color.WHITE);
             Button decline = smallButton("Recusar", SOFT, TEXT);
             row.addView(accept, sideParams());
             row.addView(decline, sideParams());
-            accept.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { p.status = PROP_ACCEPTED; saveProposals(); Toast.makeText(MainActivity.this, "Proposta aceita. Agora combine os detalhes.", Toast.LENGTH_LONG).show(); showProposalCenter(); } });
-            decline.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { p.status = PROP_DECLINED; saveProposals(); showProposalCenter(); } });
+            accept.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { acceptProposal(p, item, true); } });
+            decline.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { declineProposal(p, item, true); } });
         } else if (ownerMode && PROP_ACCEPTED.equals(p.status)) {
             Button done = smallButton("Concluir", ORANGE, Color.WHITE);
             row.addView(done, sideParams());
-            done.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { p.status = PROP_DONE; if (item != null) item.status = STATUS_DONE; saveProposals(); saveOpportunities(); showProposalCenter(); } });
+            done.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { concludeProposal(p, item, true); } });
         }
         card.addView(row);
         return card;
+    }
+
+    private void showProposalChat(final Proposal p, final Opportunity item, final boolean ownerMode) {
+        currentScreen = "proposalChat";
+        clear();
+        addHeader("Conversa", proposalStatusLabel(p) + " · " + p.listingTitle);
+        contentLayout.addView(detailText("Valor: " + p.value + "\nPrazo: " + p.deadline + "\nProposta inicial: " + p.message, 15, TEXT, Typeface.NORMAL));
+
+        int count = 0;
+        for (int i = 0; i < messages.size(); i++) {
+            ChatMessage msg = messages.get(i);
+            if (!p.id.equals(msg.proposalId)) continue;
+            contentLayout.addView(messageBubble(msg, ownerMode));
+            count++;
+        }
+        if (count == 0) contentLayout.addView(empty("Nenhuma mensagem ainda. Use uma resposta rápida ou escreva abaixo."));
+
+        addQuickMessages(p, item, ownerMode);
+
+        final EditText input = field(ownerMode ? "Responder ao interessado" : "Responder ao anunciante");
+        Button send = bigButton("Enviar mensagem", ORANGE, Color.WHITE);
+        contentLayout.addView(input);
+        contentLayout.addView(send);
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override public void onClick(View v) {
+                String body = input.getText().toString().trim();
+                if (body.length() == 0) {
+                    Toast.makeText(MainActivity.this, "Digite uma mensagem.", Toast.LENGTH_LONG).show();
+                    return;
+                }
+                sendChatMessage(p, item, ownerMode, body);
+            }
+        });
+
+        addProposalStateActions(p, item, ownerMode);
+
+        Button back = bigButton("Voltar às propostas", SOFT, TEXT);
+        contentLayout.addView(back);
+        back.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { showProposalCenter(); } });
+        buildBottomNav();
+    }
+
+    private View messageBubble(ChatMessage msg, boolean ownerMode) {
+        boolean mine = (ownerMode && ROLE_OWNER.equals(msg.role)) || (!ownerMode && ROLE_PROPOSER.equals(msg.role));
+        LinearLayout card = baseCard();
+        card.setBackground(roundedStroke(mine ? Color.rgb(255, 244, 225) : Color.WHITE, 18, BORDER, 1));
+        card.addView(text((mine ? "Você" : msg.senderName) + " · " + timeAgo(msg.createdAt), 12, MUTED, Typeface.BOLD));
+        card.addView(detailText(msg.body, 15, TEXT, Typeface.NORMAL));
+        return card;
+    }
+
+    private void addQuickMessages(final Proposal p, final Opportunity item, final boolean ownerMode) {
+        LinearLayout row1 = actionRow();
+        Button q1 = smallButton("Qual horário?", SOFT, TEXT);
+        Button q2 = smallButton("Pode por esse valor?", SOFT, TEXT);
+        row1.addView(q1, new LinearLayout.LayoutParams(0, dp(42), 1));
+        row1.addView(q2, sideParams());
+        contentLayout.addView(row1);
+
+        LinearLayout row2 = actionRow();
+        Button q3 = smallButton("Me manda endereço", SOFT, TEXT);
+        Button q4 = smallButton("Serviço combinado", GREEN, Color.WHITE);
+        row2.addView(q3, new LinearLayout.LayoutParams(0, dp(42), 1));
+        row2.addView(q4, sideParams());
+        contentLayout.addView(row2);
+
+        q1.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { sendChatMessage(p, item, ownerMode, "Qual é o melhor horário para combinarmos?"); } });
+        q2.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { sendChatMessage(p, item, ownerMode, "Consegue fazer por esse valor?"); } });
+        q3.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { sendChatMessage(p, item, ownerMode, "Pode me mandar o endereço ou ponto de referência?"); } });
+        q4.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { sendChatMessage(p, item, ownerMode, "Combinado. Vou seguir conforme acertamos."); if (ownerMode && PROP_SENT.equals(p.status)) acceptProposal(p, item, false); } });
+    }
+
+    private void addProposalStateActions(final Proposal p, final Opportunity item, final boolean ownerMode) {
+        LinearLayout row = actionRow();
+        Button whatsapp = smallButton("WhatsApp", GREEN, Color.WHITE);
+        row.addView(whatsapp, new LinearLayout.LayoutParams(0, dp(44), 1));
+        whatsapp.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { openWhatsApp(p.phone, "Olá, vamos combinar pelo Chama no Trampo sobre: " + p.listingTitle); } });
+
+        if (ownerMode && PROP_SENT.equals(p.status)) {
+            Button accept = smallButton("Aceitar", ORANGE, Color.WHITE);
+            Button decline = smallButton("Recusar", SOFT, TEXT);
+            row.addView(accept, sideParams());
+            row.addView(decline, sideParams());
+            accept.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { acceptProposal(p, item, false); } });
+            decline.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { declineProposal(p, item, false); } });
+        } else if (ownerMode && PROP_ACCEPTED.equals(p.status)) {
+            Button done = smallButton("Concluir", ORANGE, Color.WHITE);
+            row.addView(done, sideParams());
+            done.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { concludeProposal(p, item, false); } });
+        }
+        contentLayout.addView(row);
+    }
+
+    private void sendChatMessage(Proposal p, Opportunity item, boolean ownerMode, String body) {
+        String role = ownerMode ? ROLE_OWNER : ROLE_PROPOSER;
+        String fallbackName = ownerMode && item != null ? item.author : p.fromName;
+        String sender = prefs.getString(KEY_PROFILE, fallbackName);
+        if (sender == null || sender.trim().length() == 0) sender = fallbackName;
+        addMessage(p, role, sender, body);
+        saveMessages();
+        Toast.makeText(this, "Mensagem enviada.", Toast.LENGTH_SHORT).show();
+        showProposalChat(p, item, ownerMode);
+    }
+
+    private void addMessage(Proposal p, String role, String senderName, String body) {
+        long now = System.currentTimeMillis();
+        messages.add(new ChatMessage("msg" + now, p.id, role, senderName, body, now));
+    }
+
+    private void acceptProposal(Proposal p, Opportunity item, boolean backToCenter) {
+        p.status = PROP_ACCEPTED;
+        addMessage(p, ROLE_OWNER, item == null ? "Anunciante" : item.author, "Proposta aceita. Agora podemos combinar os detalhes.");
+        saveProposals();
+        saveMessages();
+        Toast.makeText(this, "Proposta aceita.", Toast.LENGTH_LONG).show();
+        if (backToCenter) showProposalCenter(); else showProposalChat(p, item, true);
+    }
+
+    private void declineProposal(Proposal p, Opportunity item, boolean backToCenter) {
+        p.status = PROP_DECLINED;
+        addMessage(p, ROLE_OWNER, item == null ? "Anunciante" : item.author, "Proposta recusada. Obrigado pelo interesse.");
+        saveProposals();
+        saveMessages();
+        if (backToCenter) showProposalCenter(); else showProposalChat(p, item, true);
+    }
+
+    private void concludeProposal(Proposal p, Opportunity item, boolean backToCenter) {
+        p.status = PROP_DONE;
+        if (item != null) item.status = STATUS_DONE;
+        addMessage(p, ROLE_OWNER, item == null ? "Anunciante" : item.author, "Negociação concluída.");
+        saveProposals();
+        saveMessages();
+        saveOpportunities();
+        if (backToCenter) showProposalCenter(); else showProposalChat(p, item, true);
     }
 
     private void showPublishDialog() { showListingDialog(null); }
@@ -538,7 +692,7 @@ public class MainActivity extends Activity {
         Button mine = bigButton("Minhas publicações", SOFT, TEXT);
         Button moderation = bigButton("Bloqueios e ocultos", SOFT, TEXT);
         contentLayout.addView(save); contentLayout.addView(mine); contentLayout.addView(moderation);
-        contentLayout.addView(detailText("Publicações: " + countLocal() + "\nPropostas recebidas: " + countReceivedProposals() + "\nPropostas aceitas: " + countAcceptedProposals(), 16, TEXT, Typeface.NORMAL));
+        contentLayout.addView(detailText("Publicações: " + countLocal() + "\nPropostas recebidas: " + countReceivedProposals() + "\nPropostas aceitas: " + countAcceptedProposals() + "\nMensagens: " + messages.size(), 16, TEXT, Typeface.NORMAL));
         save.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { prefs.edit().putString(KEY_PROFILE, name.getText().toString()).putString(KEY_PROFILE_CITY, city.getText().toString()).putString(KEY_PROFILE_PHONE, normalizePhoneForWhatsApp(phone.getText().toString())).putString(KEY_PROFILE_KIND, kind.getText().toString()).apply(); Toast.makeText(MainActivity.this, "Perfil salvo.", Toast.LENGTH_LONG).show(); } });
         mine.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { showMyPublications(); } });
         moderation.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View v) { showModerationControls(); } });
@@ -548,7 +702,7 @@ public class MainActivity extends Activity {
     private void showMyPublications() {
         currentScreen = "mine";
         clear();
-        addHeader("Minhas publicações", "Gerencie anúncios e propostas recebidas.");
+        addHeader("Minhas publicações", "Gerencie anúncios, propostas e conversas recebidas.");
         int count = 0;
         for (int i = 0; i < opportunities.size(); i++) {
             Opportunity item = opportunities.get(i);
@@ -625,7 +779,7 @@ public class MainActivity extends Activity {
     }
 
     private void addNavItem(LinearLayout dock, String label, final String target) {
-        boolean selected = currentScreen.equals(target) || ("profile".equals(target) && ("mine".equals(currentScreen) || "moderation".equals(currentScreen)));
+        boolean selected = currentScreen.equals(target) || ("proposals".equals(target) && ("proposalChat".equals(currentScreen) || "listingProposals".equals(currentScreen))) || ("profile".equals(target) && ("mine".equals(currentScreen) || "moderation".equals(currentScreen)));
         TextView item = text(label, 12, selected ? ORANGE : MUTED, Typeface.BOLD);
         item.setGravity(Gravity.CENTER);
         item.setPadding(dp(4), dp(4), dp(4), dp(4));
@@ -638,6 +792,7 @@ public class MainActivity extends Activity {
 
     private void saveOpportunities() { StringBuilder b = new StringBuilder(); for (int i = 0; i < opportunities.size(); i++) { if (i > 0) b.append('\n'); b.append(opportunities.get(i).toStorage()); } prefs.edit().putString(KEY_OPPORTUNITIES, b.toString()).apply(); }
     private void saveProposals() { StringBuilder b = new StringBuilder(); for (int i = 0; i < proposals.size(); i++) { if (i > 0) b.append('\n'); b.append(proposals.get(i).toStorage()); } prefs.edit().putString(KEY_PROPOSALS, b.toString()).apply(); }
+    private void saveMessages() { StringBuilder b = new StringBuilder(); for (int i = 0; i < messages.size(); i++) { if (i > 0) b.append('\n'); b.append(messages.get(i).toStorage()); } prefs.edit().putString(KEY_MESSAGES, b.toString()).apply(); }
     private HashSet<String> readSet(String key) { HashSet<String> set = new HashSet<String>(); String raw = prefs.getString(key, ""); if (raw.length() > 0) { String[] parts = raw.split(","); for (int i = 0; i < parts.length; i++) if (parts[i].trim().length() > 0) set.add(parts[i].trim()); } return set; }
     private void saveSet(String key, HashSet<String> set) { StringBuilder b = new StringBuilder(); for (String value : set) { if (b.length() > 0) b.append(','); b.append(value); } prefs.edit().putString(key, b.toString()).apply(); }
 
@@ -647,15 +802,20 @@ public class MainActivity extends Activity {
     private int countAcceptedProposals() { int total = 0; for (int i = 0; i < proposals.size(); i++) if (PROP_ACCEPTED.equals(proposals.get(i).status)) total++; return total; }
     private Opportunity findOpportunity(String id) { for (int i = 0; i < opportunities.size(); i++) if (opportunities.get(i).id.equals(id)) return opportunities.get(i); return null; }
     private int proposalCount(String listingId) { int total = 0; for (int i = 0; i < proposals.size(); i++) if (listingId.equals(proposals.get(i).listingId)) total++; return total; }
+    private int messageCountForProposal(String proposalId) { int total = 0; for (int i = 0; i < messages.size(); i++) if (proposalId.equals(messages.get(i).proposalId)) total++; return total; }
+    private int messageCountForListing(String listingId) { int total = 0; for (int i = 0; i < proposals.size(); i++) if (listingId.equals(proposals.get(i).listingId)) total += messageCountForProposal(proposals.get(i).id); return total; }
     private boolean hasAcceptedProposal(String listingId) { for (int i = 0; i < proposals.size(); i++) if (listingId.equals(proposals.get(i).listingId) && PROP_ACCEPTED.equals(proposals.get(i).status)) return true; return false; }
     private boolean hasDoneProposal(String listingId) { for (int i = 0; i < proposals.size(); i++) if (listingId.equals(proposals.get(i).listingId) && PROP_DONE.equals(proposals.get(i).status)) return true; return false; }
 
     private String proposalSummary(Opportunity item) { int count = proposalCount(item.id); if (count == 0) return "Nenhuma proposta ainda"; if (count == 1) return "1 proposta recebida"; return count + " propostas recebidas"; }
+    private String messageSummary(String listingId) { int count = messageCountForListing(listingId); if (count == 0) return "sem mensagens"; if (count == 1) return "1 mensagem"; return count + " mensagens"; }
+    private String chatSummary(String proposalId) { int count = messageCountForProposal(proposalId); if (count == 0) return "Conversa: sem mensagens"; if (count == 1) return "Conversa: 1 mensagem"; return "Conversa: " + count + " mensagens"; }
     private String dealStatusText(Opportunity item) { if (STATUS_DONE.equals(item.status) || hasDoneProposal(item.id)) return "Concluído"; if (hasAcceptedProposal(item.id)) return "Combinado"; if (proposalCount(item.id) > 0) return "Em negociação"; return "Aberto"; }
     private int dealStatusColor(Opportunity item) { if (STATUS_DONE.equals(item.status) || hasDoneProposal(item.id)) return MUTED; if (hasAcceptedProposal(item.id)) return GREEN; if (proposalCount(item.id) > 0) return ORANGE; return Color.rgb(33, 33, 33); }
     private String interestText(Opportunity item) { if (item.interestCount <= 0) return "Nenhum interesse registrado"; if (item.interestCount == 1) return "1 pessoa demonstrou interesse"; return item.interestCount + " pessoas demonstraram interesse"; }
-    private String proposalStatusLabel(String status) { if (PROP_ACCEPTED.equals(status)) return "Aceita"; if (PROP_DECLINED.equals(status)) return "Recusada"; if (PROP_DONE.equals(status)) return "Concluída"; return "Enviada"; }
+    private String proposalStatusLabel(Proposal p) { if (PROP_ACCEPTED.equals(p.status)) return "Aceita"; if (PROP_DECLINED.equals(p.status)) return "Recusada"; if (PROP_DONE.equals(p.status)) return "Concluída"; if (messageCountForProposal(p.id) > 1) return "Em conversa"; return "Enviada"; }
     private int proposalStatusColor(String status) { if (PROP_ACCEPTED.equals(status)) return GREEN; if (PROP_DECLINED.equals(status)) return RED; if (PROP_DONE.equals(status)) return MUTED; return ORANGE; }
+    private String timeAgo(long createdAt) { long diff = Math.max(0, System.currentTimeMillis() - createdAt); if (diff < HOUR) return (diff / (60L * 1000L)) + " min"; if (diff < DAY) return (diff / HOUR) + "h"; return (diff / DAY) + " dia" + ((diff / DAY) > 1 ? "s" : ""); }
 
     private boolean isMine(Opportunity item) { return item.id.startsWith("local") || deviceId.equals(item.ownerDeviceId); }
     private String locationText(Opportunity item) { return item.place + (item.distance == null || item.distance.length() == 0 ? "" : " · " + item.distance); }
@@ -707,5 +867,12 @@ public class MainActivity extends Activity {
         Proposal(String id, String listingId, String listingTitle, String fromDeviceId, String fromName, String phone, String value, String deadline, String message, String status, long createdAt) { this.id = id; this.listingId = listingId; this.listingTitle = listingTitle; this.fromDeviceId = fromDeviceId; this.fromName = fromName; this.phone = phone; this.value = value; this.deadline = deadline; this.message = message; this.status = status; this.createdAt = createdAt; }
         String toStorage() { return Opportunity.clean(id) + "|" + Opportunity.clean(listingId) + "|" + Opportunity.clean(listingTitle) + "|" + Opportunity.clean(fromDeviceId) + "|" + Opportunity.clean(fromName) + "|" + Opportunity.clean(phone) + "|" + Opportunity.clean(value) + "|" + Opportunity.clean(deadline) + "|" + Opportunity.clean(message) + "|" + Opportunity.clean(status) + "|" + createdAt; }
         static Proposal fromStorage(String row) { String[] p = row.split("\\|", -1); if (p.length < 11) return null; return new Proposal(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], Opportunity.parseLong(p[10], System.currentTimeMillis())); }
+    }
+
+    private static class ChatMessage {
+        String id, proposalId, role, senderName, body; long createdAt;
+        ChatMessage(String id, String proposalId, String role, String senderName, String body, long createdAt) { this.id = id; this.proposalId = proposalId; this.role = role; this.senderName = senderName; this.body = body; this.createdAt = createdAt; }
+        String toStorage() { return Opportunity.clean(id) + "|" + Opportunity.clean(proposalId) + "|" + Opportunity.clean(role) + "|" + Opportunity.clean(senderName) + "|" + Opportunity.clean(body) + "|" + createdAt; }
+        static ChatMessage fromStorage(String row) { String[] p = row.split("\\|", -1); if (p.length < 6) return null; return new ChatMessage(p[0], p[1], p[2], p[3], p[4], Opportunity.parseLong(p[5], System.currentTimeMillis())); }
     }
 }
