@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
     private static final String KEY_OPORTUNIDADES = "oportunidades_salvas";
     private static final String KEY_CHAT = "chat_proposta_";
     private static final String KEY_STATUS = "status_conversa_";
+    private static final String KEY_AVALIACAO = "avaliacao_proposta_";
 
     private static final String AGUARDANDO = "AGUARDANDO_RESPOSTA";
     private static final String EM_CONVERSA = "EM_CONVERSA";
@@ -243,6 +244,10 @@ public class MainActivity extends Activity {
         card.addView(texto(o.descricao.length() == 0 ? "Sem descricao informada." : o.descricao, 14, Color.rgb(86, 76, 114), false));
         card.addView(espaco(10));
         card.addView(resumoConversa(o));
+        if (temAvaliacao(o)) {
+            card.addView(espaco(8));
+            card.addView(resumoAvaliacao(o));
+        }
         card.addView(espaco(12));
         card.addView(botao("Abrir conversa", INK, WHITE, new View.OnClickListener() { public void onClick(View v) { montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         card.addView(espaco(8));
@@ -254,8 +259,7 @@ public class MainActivity extends Activity {
         LinearLayout box = coluna();
         box.setPadding(dp(13), dp(10), dp(13), dp(10));
         box.setBackground(bg(Color.argb(130, 255, 255, 255), dp(16)));
-        TextView s = statusPill(statusConversa(o));
-        box.addView(s);
+        box.addView(statusPill(statusConversa(o)));
         String ultima = ultimaMensagemResumo(o);
         box.addView(texto(ultima.length() > 0 ? ultima : "Sem mensagens ainda. Abra a conversa para negociar por aqui.", 12, INK_LIGHT, false));
         return box;
@@ -268,6 +272,13 @@ public class MainActivity extends Activity {
         raiz.addView(cardResumo(o));
         raiz.addView(espaco(10));
         raiz.addView(statusBox(o));
+        if (temAvaliacao(o)) {
+            raiz.addView(espaco(10));
+            raiz.addView(resumoAvaliacao(o));
+        } else if (CONCLUIDO.equals(statusConversa(o))) {
+            raiz.addView(espaco(10));
+            raiz.addView(chamadaAvaliacao(o));
+        }
         raiz.addView(espaco(12));
         ArrayList<Mensagem> msgs = carregarMensagens(o);
         if (msgs.isEmpty()) raiz.addView(bloco("Nenhuma mensagem ainda. Use uma mensagem rapida ou digite abaixo.", 14, INK_LIGHT, false, WHITE, dp(18)));
@@ -306,7 +317,7 @@ public class MainActivity extends Activity {
         box.addView(texto(o.titulo, 20, INK, true));
         box.addView(texto(o.local, 14, INK_LIGHT, true));
         box.addView(texto(o.valor.length() == 0 ? "Valor a combinar" : o.valor, 14, corPreco(o.valor), true));
-        box.addView(texto("Proposta -> Conversa -> Combinado -> Concluido", 12, INK_LIGHT, false));
+        box.addView(texto("Proposta -> Conversa -> Combinado -> Concluido -> Avaliacao", 12, INK_LIGHT, false));
         return box;
     }
 
@@ -318,6 +329,15 @@ public class MainActivity extends Activity {
         box.setElevation(dp(2));
         box.addView(texto("Status", 14, INK_LIGHT, true), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
         box.addView(statusPill(statusConversa(o)));
+        return box;
+    }
+
+    private View chamadaAvaliacao(final Oportunidade o) {
+        LinearLayout box = colunaCard(WHITE);
+        box.addView(texto("Servico concluido", 17, INK, true));
+        box.addView(texto("Avalie a experiencia para montar a reputacao do perfil.", 13, INK_LIGHT, false));
+        box.addView(espaco(8));
+        box.addView(botao("Avaliar servico", TANGERINE, WHITE, new View.OnClickListener() { public void onClick(View v) { montarTelaAvaliacao(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(46)));
         return box;
     }
 
@@ -367,10 +387,100 @@ public class MainActivity extends Activity {
 
     private View botoesStatus(final Oportunidade o) {
         LinearLayout box = coluna();
-        box.addView(botao("Marcar como combinado", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, COMBINADO); addMensagem(o, "Sistema", "Servico combinado.", "status"); montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
-        box.addView(espaco(8));
-        box.addView(botao("Concluir servico", Color.rgb(93, 93, 112), WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, CONCLUIDO); addMensagem(o, "Sistema", "Servico concluido.", "status"); montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        if (!CONCLUIDO.equals(statusConversa(o))) {
+            box.addView(botao("Marcar como combinado", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, COMBINADO); addMensagem(o, "Sistema", "Servico combinado.", "status"); montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+            box.addView(espaco(8));
+            box.addView(botao("Concluir servico", Color.rgb(93, 93, 112), WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, CONCLUIDO); addMensagem(o, "Sistema", "Servico concluido.", "status"); montarTelaAvaliacao(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        } else {
+            box.addView(botao(temAvaliacao(o) ? "Editar avaliacao" : "Avaliar servico", TANGERINE, WHITE, new View.OnClickListener() { public void onClick(View v) { montarTelaAvaliacao(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        }
         return box;
+    }
+
+    private void montarTelaAvaliacao(final Oportunidade o) {
+        LinearLayout raiz = base();
+        raiz.addView(header("Avaliar servico", "Salve uma nota local apos a conclusao."));
+        raiz.addView(espaco(12));
+        raiz.addView(cardResumo(o));
+        raiz.addView(espaco(12));
+
+        Avaliacao atual = carregarAvaliacao(o);
+        final int[] nota = new int[]{atual.nota};
+        final TextView notaAtual = texto("Nota selecionada: " + labelNota(nota[0]), 16, INK, true);
+        raiz.addView(notaAtual);
+        raiz.addView(espaco(8));
+        raiz.addView(botoesNota(nota, notaAtual));
+        raiz.addView(espaco(12));
+
+        final EditText comentario = campo("Comentario sobre o servico");
+        comentario.setMinLines(3);
+        comentario.setMaxLines(6);
+        if (atual.comentario.length() > 0) comentario.setText(atual.comentario);
+        raiz.addView(comentario);
+        raiz.addView(espaco(12));
+
+        raiz.addView(botao("Salvar avaliacao", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) {
+            if (nota[0] <= 0) { Toast.makeText(MainActivity.this, "Escolha uma nota de 1 a 5.", Toast.LENGTH_SHORT).show(); return; }
+            salvarAvaliacao(o, nota[0], comentario.getText().toString().trim());
+            addMensagem(o, "Sistema", "Avaliacao salva: " + nota[0] + "/5.", "avaliacao");
+            Toast.makeText(MainActivity.this, "Avaliacao salva no aparelho.", Toast.LENGTH_LONG).show();
+            montarTelaChat(o);
+        }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        raiz.addView(espaco(10));
+        raiz.addView(botao("Voltar para conversa", WHITE, INK, new View.OnClickListener() { public void onClick(View v) { montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        setContentViewComNav(scroll(raiz), "chat", false);
+    }
+
+    private View botoesNota(final int[] nota, final TextView notaAtual) {
+        LinearLayout linha = linha();
+        linha.setGravity(Gravity.CENTER);
+        for (int i = 1; i <= 5; i++) {
+            final int valor = i;
+            TextView b = texto(String.valueOf(i), 18, INK, true);
+            b.setGravity(Gravity.CENTER);
+            b.setBackground(bg(WHITE, dp(999)));
+            b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { nota[0] = valor; notaAtual.setText("Nota selecionada: " + labelNota(valor)); }});
+            LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, dp(48), 1);
+            p.setMargins(0, 0, dp(7), 0);
+            linha.addView(b, p);
+        }
+        return linha;
+    }
+
+    private View resumoAvaliacao(Oportunidade o) {
+        Avaliacao a = carregarAvaliacao(o);
+        LinearLayout box = coluna();
+        box.setPadding(dp(13), dp(10), dp(13), dp(10));
+        box.setBackground(bg(Color.argb(145, 255, 255, 255), dp(16)));
+        box.addView(texto("Avaliacao: " + a.nota + "/5", 14, TANGERINE, true));
+        if (a.comentario.length() > 0) box.addView(texto(a.comentario, 13, INK_LIGHT, false));
+        if (a.data.length() > 0) box.addView(texto("Salva em " + a.data, 11, INK_LIGHT, false));
+        return box;
+    }
+
+    private Avaliacao carregarAvaliacao(Oportunidade o) {
+        String salvo = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_AVALIACAO + chave(o), "");
+        if (salvo == null || salvo.trim().length() == 0) return new Avaliacao(0, "", "");
+        String[] c = salvo.split("\\|", -1);
+        int nota = 0;
+        try { nota = Integer.parseInt(c[0]); } catch (Exception e) { nota = 0; }
+        String comentario = c.length > 1 ? dec(c[1]) : "";
+        String data = c.length > 2 ? dec(c[2]) : "";
+        return new Avaliacao(nota, comentario, data);
+    }
+
+    private void salvarAvaliacao(Oportunidade o, int nota, String comentario) {
+        String valor = nota + "|" + enc(comentario) + "|" + enc(agora());
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_AVALIACAO + chave(o), valor).apply();
+    }
+
+    private boolean temAvaliacao(Oportunidade o) {
+        return carregarAvaliacao(o).nota > 0;
+    }
+
+    private String labelNota(int nota) {
+        if (nota <= 0) return "nenhuma";
+        return nota + "/5";
     }
 
     private void montarTelaConversas() {
@@ -408,12 +518,13 @@ public class MainActivity extends Activity {
         card.addView(texto(o.local, 13, INK_LIGHT, false));
         String ultima = ultimaMensagemResumo(o);
         card.addView(texto(ultima.length() == 0 ? "Toque para iniciar a negociacao local." : ultima, 13, INK_LIGHT, false));
+        if (temAvaliacao(o)) card.addView(texto("Avaliacao: " + carregarAvaliacao(o).nota + "/5", 12, TANGERINE, true));
         card.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { montarTelaChat(o); }});
         return card;
     }
 
     private boolean temConversaAtiva(Oportunidade o) {
-        return carregarMensagens(o).size() > 0 || !AGUARDANDO.equals(statusConversa(o));
+        return carregarMensagens(o).size() > 0 || !AGUARDANDO.equals(statusConversa(o)) || temAvaliacao(o);
     }
 
     private ArrayList<Mensagem> carregarMensagens(Oportunidade o) {
@@ -548,7 +659,7 @@ public class MainActivity extends Activity {
             montarTelaPrincipal();
         }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
         raiz.addView(espaco(10));
-        raiz.addView(bloco("Suas oportunidades, conversas e combinados ficam salvos neste aparelho. Depois isso vai para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        raiz.addView(bloco("Suas oportunidades, conversas, combinados e avaliacoes ficam salvos neste aparelho. Depois isso vai para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
         raiz.addView(espaco(10));
         raiz.addView(botao("Voltar", WHITE, INK, new View.OnClickListener() { public void onClick(View v) { montarTelaPrincipal(); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         setContentViewComNav(scroll(raiz), "perfil", false);
@@ -658,5 +769,11 @@ public class MainActivity extends Activity {
     private static class Mensagem {
         String autor, texto, hora, tipo;
         Mensagem(String autor, String texto, String hora, String tipo) { this.autor = autor; this.texto = texto; this.hora = hora; this.tipo = tipo; }
+    }
+
+    private static class Avaliacao {
+        int nota;
+        String comentario, data;
+        Avaliacao(int nota, String comentario, String data) { this.nota = nota; this.comentario = comentario; this.data = data; }
     }
 }

@@ -18,7 +18,7 @@ A ideia central e simples:
 
 ## MVP atual
 
-Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp e negociacao local por proposta.
+Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp, negociacao local por proposta e avaliacao apos conclusao.
 
 Funcionalidades atuais:
 
@@ -32,6 +32,9 @@ Funcionalidades atuais:
 - Historico de mensagens da negociacao
 - Mensagens rapidas para combinar detalhes
 - Status visual da conversa
+- Avaliacao local apos concluir servico
+- Nota de 1 a 5 com comentario
+- Exibicao da avaliacao no card e na conversa
 - Botao para contato via WhatsApp
 - Redesign visual com cards premium, chips e bottom nav
 
@@ -45,18 +48,17 @@ Funcionalidades atuais:
 
 ## Fluxo de negociacao
 
-Proposta -> Conversa -> Combinado -> Concluido
+Proposta -> Conversa -> Combinado -> Concluido -> Avaliacao
 
 ## Proximas etapas
 
-- Avaliacao apos conclusao
 - Ranking e reputacao do perfil
 - Busca funcional
 - Favoritos
 - Tela completa de detalhes
 - Integracao com Firebase Auth
 - Cadastro de usuario/profissional/empresa
-- Firestore para salvar oportunidades e conversas reais
+- Firestore para salvar oportunidades, conversas e avaliacoes reais
 - Anuncios destacados
 - Notificacoes
 
