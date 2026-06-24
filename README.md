@@ -18,20 +18,22 @@ A ideia central e simples:
 
 ## MVP atual
 
-Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp, negociacao local por proposta, avaliacao apos conclusao, busca funcional, favoritos e avisos internos.
+Versao nativa Android criada pelo celular, com visual premium, oportunidades locais, publicacao, perfil local, contato por WhatsApp, negociacao local por proposta, avaliacao apos conclusao, busca funcional, favoritos, avisos internos e tela de detalhes.
 
 Funcionalidades atuais:
 
 - Tela inicial com identidade do app
-- Lista de oportunidades locais
+- Cards de oportunidades mais limpos na home
+- Tela de detalhes da oportunidade
 - Filtro por categoria
 - Busca funcional por titulo, cidade, valor, descricao, autor e categoria
 - Sugestoes rapidas de busca
 - Favoritos locais por oportunidade
-- Tela de favoritos
-- Central de avisos internos
+- Tela de favoritos mantendo o usuario no fluxo correto
+- Central de avisos internos com texto explicando que ainda nao e push real
 - Avisos para favoritos, mensagens, conclusoes, avaliacoes e publicacoes
 - Formulario para publicar oportunidade
+- ID local fixo para novas oportunidades
 - Perfil local do usuario
 - Oportunidades salvas no aparelho
 - Chat local por proposta
@@ -40,7 +42,7 @@ Funcionalidades atuais:
 - Status visual da conversa
 - Avaliacao local apos concluir servico
 - Nota de 1 a 5 com comentario
-- Exibicao da avaliacao no card e na conversa
+- Exibicao da avaliacao nos detalhes e na conversa
 - Botao para contato via WhatsApp
 - Redesign visual com cards premium, chips e bottom nav
 
@@ -54,17 +56,19 @@ Funcionalidades atuais:
 
 ## Fluxo de negociacao
 
-Proposta -> Conversa -> Combinado -> Concluido -> Avaliacao
+Proposta -> Detalhes -> Conversa -> Combinado -> Concluido -> Avaliacao
 
 ## Recursos locais adicionados
 
 - Busca dentro das oportunidades salvas
 - Favoritos salvos no aparelho
 - Avisos internos salvos no aparelho
+- ID local para novas oportunidades
 
 ## Proximas etapas
 
-- Tela completa de detalhes
+- Teste manual no AndroidIDE
+- Ajustes finos de layout em tela pequena
 - Ranking e reputacao do perfil
 - Integracao com Firebase Auth
 - Cadastro de usuario/profissional/empresa
