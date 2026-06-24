@@ -18,16 +18,25 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
-
     private static final String PREFS = "chama_no_trampo_prefs";
     private static final String KEY_NOME = "perfil_nome";
     private static final String KEY_CIDADE = "perfil_cidade";
     private static final String KEY_TELEFONE = "perfil_telefone";
     private static final String KEY_TIPO_USUARIO = "perfil_tipo_usuario";
     private static final String KEY_OPORTUNIDADES = "oportunidades_salvas";
+    private static final String KEY_CHAT = "chat_proposta_";
+    private static final String KEY_STATUS = "status_conversa_";
+
+    private static final String AGUARDANDO = "AGUARDANDO_RESPOSTA";
+    private static final String EM_CONVERSA = "EM_CONVERSA";
+    private static final String COMBINADO = "COMBINADO";
+    private static final String CONCLUIDO = "CONCLUIDO";
 
     private static final int CREAM = Color.rgb(255, 248, 239);
     private static final int INK = Color.rgb(43, 34, 80);
@@ -40,17 +49,16 @@ public class MainActivity extends Activity {
     private static final int BLUE = Color.rgb(61, 174, 255);
     private static final int PURPLE = Color.rgb(155, 93, 229);
     private static final int WHITE = Color.WHITE;
-
     private static final int VAGA_TINT = Color.rgb(227, 251, 240);
     private static final int SERVICO_TINT = Color.rgb(230, 244, 255);
     private static final int BICO_TINT = Color.rgb(243, 234, 254);
     private static final int URGENTE_TINT = Color.rgb(255, 234, 234);
     private static final int SEGURANCA_TINT = Color.rgb(255, 241, 214);
+    private static final int CINZA_TINT = Color.rgb(238, 238, 242);
 
     private LinearLayout conteudoContainer;
     private String filtroAtual = "TODOS";
     private ArrayList<Oportunidade> oportunidades = new ArrayList<Oportunidade>();
-
     private String perfilNome = "";
     private String perfilCidade = "";
     private String perfilTelefone = "";
@@ -59,7 +67,6 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
         try {
             carregarPerfil();
             carregarOportunidades();
@@ -70,11 +77,11 @@ public class MainActivity extends Activity {
     }
 
     private void carregarPerfil() {
-        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
-        perfilNome = prefs.getString(KEY_NOME, "");
-        perfilCidade = prefs.getString(KEY_CIDADE, "");
-        perfilTelefone = prefs.getString(KEY_TELEFONE, "");
-        perfilTipoUsuario = prefs.getString(KEY_TIPO_USUARIO, "");
+        SharedPreferences p = getSharedPreferences(PREFS, MODE_PRIVATE);
+        perfilNome = p.getString(KEY_NOME, "");
+        perfilCidade = p.getString(KEY_CIDADE, "");
+        perfilTelefone = p.getString(KEY_TELEFONE, "");
+        perfilTipoUsuario = p.getString(KEY_TIPO_USUARIO, "");
     }
 
     private void salvarPerfil(String nome, String cidade, String telefone, String tipoUsuario) {
@@ -82,9 +89,7 @@ public class MainActivity extends Activity {
         perfilCidade = cidade;
         perfilTelefone = telefone;
         perfilTipoUsuario = tipoUsuario;
-
-        getSharedPreferences(PREFS, MODE_PRIVATE)
-                .edit()
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit()
                 .putString(KEY_NOME, perfilNome)
                 .putString(KEY_CIDADE, perfilCidade)
                 .putString(KEY_TELEFONE, perfilTelefone)
@@ -99,25 +104,13 @@ public class MainActivity extends Activity {
     private void carregarOportunidades() {
         oportunidades.clear();
         String salvo = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_OPORTUNIDADES, "");
-
         if (salvo != null && salvo.trim().length() > 0) {
             String[] linhas = salvo.split("\\n");
             for (int i = 0; i < linhas.length; i++) {
-                String[] campos = linhas[i].split("\\|", -1);
-                if (campos.length >= 7) {
-                    oportunidades.add(new Oportunidade(
-                            decodificar(campos[0]),
-                            decodificar(campos[1]),
-                            decodificar(campos[2]),
-                            decodificar(campos[3]),
-                            decodificar(campos[4]),
-                            decodificar(campos[5]),
-                            decodificar(campos[6])
-                    ));
-                }
+                String[] c = linhas[i].split("\\|", -1);
+                if (c.length >= 7) oportunidades.add(new Oportunidade(dec(c[0]), dec(c[1]), dec(c[2]), dec(c[3]), dec(c[4]), dec(c[5]), dec(c[6])));
             }
         }
-
         if (oportunidades.isEmpty()) {
             oportunidades.add(new Oportunidade("VAGA", "Auxiliar de producao", "Guariba - Centro", "Salario a combinar", "Empresa local buscando inicio imediato.", "16999999999", "Equipe Chama no Trampo"));
             oportunidades.add(new Oportunidade("SERVICO", "Pedreiro para reforma", "Jardinopolis", "Enviar orcamento", "Cliente precisa reformar uma area pequena.", "16999999999", "Equipe Chama no Trampo"));
@@ -128,36 +121,18 @@ public class MainActivity extends Activity {
     }
 
     private void salvarOportunidades() {
-        StringBuilder builder = new StringBuilder();
+        StringBuilder b = new StringBuilder();
         for (int i = 0; i < oportunidades.size(); i++) {
-            Oportunidade item = oportunidades.get(i);
-            builder.append(codificar(item.tipo)).append("|")
-                    .append(codificar(item.titulo)).append("|")
-                    .append(codificar(item.local)).append("|")
-                    .append(codificar(item.valor)).append("|")
-                    .append(codificar(item.descricao)).append("|")
-                    .append(codificar(item.contato)).append("|")
-                    .append(codificar(item.autor));
-            if (i < oportunidades.size() - 1) {
-                builder.append("\n");
-            }
+            Oportunidade o = oportunidades.get(i);
+            b.append(enc(o.tipo)).append("|").append(enc(o.titulo)).append("|").append(enc(o.local)).append("|").append(enc(o.valor)).append("|").append(enc(o.descricao)).append("|").append(enc(o.contato)).append("|").append(enc(o.autor));
+            if (i < oportunidades.size() - 1) b.append("\n");
         }
-
-        getSharedPreferences(PREFS, MODE_PRIVATE)
-                .edit()
-                .putString(KEY_OPORTUNIDADES, builder.toString())
-                .apply();
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_OPORTUNIDADES, b.toString()).apply();
     }
 
     private void montarTelaPrincipal() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(CREAM);
-
-        LinearLayout raiz = new LinearLayout(this);
-        raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
-
-        raiz.addView(headerPrincipal());
+        LinearLayout raiz = base();
+        raiz.addView(header("Chama no Trampo", "Empregos, bicos e servicos perto de voce"));
         raiz.addView(espaco(12));
         raiz.addView(profileBanner());
         raiz.addView(espaco(12));
@@ -165,705 +140,523 @@ public class MainActivity extends Activity {
         raiz.addView(espaco(8));
         raiz.addView(chipsCategorias());
         raiz.addView(espaco(10));
-        raiz.addView(sectionLabel());
+        raiz.addView(texto(contarFiltro(filtroAtual) + " oportunidades " + ("TODOS".equals(filtroAtual) ? "perto de voce" : filtroAtual.toLowerCase()), 14, INK_LIGHT, true));
         raiz.addView(espaco(8));
-
-        conteudoContainer = new LinearLayout(this);
-        conteudoContainer.setOrientation(LinearLayout.VERTICAL);
+        conteudoContainer = coluna();
         raiz.addView(conteudoContainer);
-
-        scroll.addView(raiz);
-        setContentViewComNav(scroll, "inicio", true);
-
+        setContentViewComNav(scroll(raiz), "inicio", true);
         atualizarLista(filtroAtual);
     }
 
-    private View headerPrincipal() {
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(20), dp(18), dp(20), dp(18));
-        header.setBackground(gradient(YELLOW, TANGERINE, dp(28)));
-        header.setElevation(dp(4));
-
-        TextView marca = texto("Chama no Trampo", 29, INK, true);
-        marca.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        TextView subtitulo = texto("Empregos, bicos e servicos perto de voce", 15, Color.rgb(91, 62, 30), true);
-
-        header.addView(marca);
-        header.addView(subtitulo);
-
-        return header;
-    }
-
     private View profileBanner() {
+        LinearLayout box = colunaCard(WHITE);
         if (perfilCompleto()) {
-            LinearLayout box = new LinearLayout(this);
-            box.setOrientation(LinearLayout.VERTICAL);
-            box.setPadding(dp(16), dp(13), dp(16), dp(13));
-            box.setBackground(bg(WHITE, dp(18)));
-            box.setElevation(dp(3));
-
             box.addView(texto("Perfil ativo: " + perfilNome, 15, INK, true));
             box.addView(texto(textoPerfilResumo(), 13, INK_LIGHT, false));
-
-            box.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    montarTelaPerfil();
-                }
-            });
-            return box;
+        } else {
+            box.addView(texto("Falta pouco! Complete seu perfil e apareca mais nas buscas", 14, INK, true));
+            box.addView(espaco(8));
+            LinearLayout trilha = new LinearLayout(this);
+            trilha.setBackground(bg(Color.rgb(241, 236, 223), dp(8)));
+            LinearLayout preenchido = new LinearLayout(this);
+            preenchido.setBackground(bg(GREEN, dp(8)));
+            trilha.addView(preenchido, new LinearLayout.LayoutParams(0, dp(7), 60));
+            box.addView(trilha, lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(7)));
         }
-
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.VERTICAL);
-        box.setPadding(dp(16), dp(13), dp(16), dp(13));
-        box.setBackground(bg(WHITE, dp(18)));
-        box.setElevation(dp(3));
-
-        TextView linha = texto("Falta pouco! Complete seu perfil e apareca mais nas buscas", 14, INK, true);
-        box.addView(linha);
-        box.addView(espaco(8));
-
-        LinearLayout trilha = new LinearLayout(this);
-        trilha.setBackground(bg(Color.rgb(241, 236, 223), dp(8)));
-        LinearLayout preenchido = new LinearLayout(this);
-        preenchido.setBackground(bg(GREEN, dp(8)));
-        trilha.addView(preenchido, new LinearLayout.LayoutParams(0, dp(7), 60));
-        box.addView(trilha, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(7)));
-
-        box.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPerfil();
-            }
-        });
-
+        box.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { montarTelaPerfil(); }});
         return box;
     }
 
     private View searchBar() {
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout box = linha();
         box.setGravity(Gravity.CENTER_VERTICAL);
         box.setPadding(dp(16), dp(12), dp(16), dp(12));
         box.setBackground(bg(WHITE, dp(999)));
         box.setElevation(dp(3));
-
-        TextView icon = texto("🔎", 17, INK_LIGHT, false);
-        TextView hint = texto("Buscar: pedreiro, ajudante, eletricista...", 14, INK_LIGHT, true);
-
-        box.addView(icon);
-        box.addView(espacoLargura(8));
-        box.addView(hint, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-        box.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
-            }
-        });
-
+        box.addView(texto("Buscar: pedreiro, ajudante, eletricista...", 14, INK_LIGHT, true), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        box.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show(); }});
         return box;
     }
 
     private View chipsCategorias() {
-        HorizontalScrollView horizontal = new HorizontalScrollView(this);
-        horizontal.setHorizontalScrollBarEnabled(false);
-
-        LinearLayout linha = new LinearLayout(this);
-        linha.setOrientation(LinearLayout.HORIZONTAL);
-        linha.setPadding(0, dp(4), 0, dp(4));
-
-        linha.addView(chip("Todos", "TODOS"));
-        linha.addView(chip("Vagas", "VAGA"));
-        linha.addView(chip("Bicos", "BICO"));
-        linha.addView(chip("Servicos", "SERVICO"));
-        linha.addView(chip("Urgentes", "URGENTE"));
-        linha.addView(chip("Seguranca", "SEGURANCA"));
-
-        horizontal.addView(linha);
-        return horizontal;
+        HorizontalScrollView h = new HorizontalScrollView(this);
+        h.setHorizontalScrollBarEnabled(false);
+        LinearLayout l = linha();
+        l.addView(chip("Todos", "TODOS"));
+        l.addView(chip("Vagas", "VAGA"));
+        l.addView(chip("Bicos", "BICO"));
+        l.addView(chip("Servicos", "SERVICO"));
+        l.addView(chip("Urgentes", "URGENTE"));
+        l.addView(chip("Seguranca", "SEGURANCA"));
+        h.addView(l);
+        return h;
     }
 
     private TextView chip(String nome, final String filtro) {
         boolean ativo = filtro.equals(filtroAtual);
-        int fundo = ativo ? INK : tintTipo(filtro);
-        int texto = ativo ? WHITE : corTipo(filtro);
-
-        TextView chip = texto(nome, 14, texto, true);
-        chip.setGravity(Gravity.CENTER);
-        chip.setPadding(dp(17), dp(9), dp(17), dp(9));
-        chip.setBackground(bg(fundo, dp(999)));
-
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
-        lp.setMargins(0, 0, dp(9), 0);
-        chip.setLayoutParams(lp);
-
-        chip.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                filtroAtual = filtro;
-                montarTelaPrincipal();
-            }
-        });
-
-        return chip;
-    }
-
-    private View sectionLabel() {
-        int total = contarFiltro(filtroAtual);
-        String categoria = "TODOS".equals(filtroAtual) ? "perto de voce" : filtroAtual.toLowerCase();
-        return texto(total + " oportunidades " + categoria, 14, INK_LIGHT, true);
+        TextView c = texto(nome, 14, ativo ? WHITE : corTipo(filtro), true);
+        c.setGravity(Gravity.CENTER);
+        c.setPadding(dp(17), dp(9), dp(17), dp(9));
+        c.setBackground(bg(ativo ? INK : tintTipo(filtro), dp(999)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
+        p.setMargins(0, 0, dp(9), 0);
+        c.setLayoutParams(p);
+        c.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { filtroAtual = filtro; montarTelaPrincipal(); }});
+        return c;
     }
 
     private void atualizarLista(String filtro) {
         filtroAtual = filtro;
-        if (conteudoContainer == null) {
-            return;
-        }
-
+        if (conteudoContainer == null) return;
         conteudoContainer.removeAllViews();
-
         int total = 0;
         for (int i = 0; i < oportunidades.size(); i++) {
-            Oportunidade item = oportunidades.get(i);
-            if ("TODOS".equals(filtroAtual) || item.tipo.equals(filtroAtual)) {
-                conteudoContainer.addView(cardOportunidade(item));
+            Oportunidade o = oportunidades.get(i);
+            if ("TODOS".equals(filtroAtual) || o.tipo.equals(filtroAtual)) {
+                conteudoContainer.addView(cardOportunidade(o));
                 conteudoContainer.addView(espaco(14));
                 total++;
             }
         }
-
-        if (total == 0) {
-            conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada nesta categoria.", 15, INK_LIGHT, false, WHITE, dp(18)));
-        }
+        if (total == 0) conteudoContainer.addView(bloco("Nenhuma oportunidade encontrada nesta categoria.", 15, INK_LIGHT, false, WHITE, dp(18)));
     }
 
-    private View cardOportunidade(final Oportunidade item) {
-        LinearLayout card = new LinearLayout(this);
-        card.setOrientation(LinearLayout.VERTICAL);
-        card.setPadding(dp(18), dp(16), dp(18), dp(18));
-        card.setBackground(bg(tintTipo(item.tipo), dp(24)));
-        card.setElevation(dp(3));
-
-        LinearLayout top = new LinearLayout(this);
-        top.setOrientation(LinearLayout.HORIZONTAL);
+    private View cardOportunidade(final Oportunidade o) {
+        LinearLayout card = colunaCard(tintTipo(o.tipo));
+        LinearLayout top = linha();
         top.setGravity(Gravity.CENTER_VERTICAL);
-
-        LinearLayout left = new LinearLayout(this);
-        left.setOrientation(LinearLayout.HORIZONTAL);
-        left.setGravity(Gravity.CENTER_VERTICAL);
-
-        TextView circle = texto(iconTipo(item.tipo), 15, WHITE, true);
-        circle.setGravity(Gravity.CENTER);
-        circle.setBackground(bg(corTipo(item.tipo), dp(999)));
-        left.addView(circle, larguraAltura(dp(34), dp(34)));
-        left.addView(espacoLargura(9));
-
-        TextView badge = texto(labelTipo(item.tipo), 12, corTipo(item.tipo), true);
+        TextView badge = texto(labelTipo(o.tipo), 12, corTipo(o.tipo), true);
         badge.setGravity(Gravity.CENTER);
         badge.setPadding(dp(10), dp(5), dp(10), dp(5));
         badge.setBackground(bg(Color.argb(105, 255, 255, 255), dp(999)));
-        left.addView(badge);
-
-        top.addView(left, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-
-        TextView distancia = texto(distanciaFake(item), 12, INK_LIGHT, true);
-        distancia.setGravity(Gravity.RIGHT);
-        top.addView(distancia);
-
+        top.addView(badge, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        TextView dist = texto(distanciaFake(o), 12, INK_LIGHT, true);
+        dist.setGravity(Gravity.RIGHT);
+        top.addView(dist);
         card.addView(top);
         card.addView(espaco(9));
-
-        TextView titulo = texto(item.titulo, 21, INK, true);
-        card.addView(titulo);
-
-        card.addView(texto(item.local, 14, INK_LIGHT, true));
-
-        String autor = item.autor == null || item.autor.trim().length() == 0 ? "Usuario local" : item.autor;
-        card.addView(texto("por " + autor, 12, INK_LIGHT, false));
-
+        card.addView(texto(o.titulo, 21, INK, true));
+        card.addView(texto(o.local, 14, INK_LIGHT, true));
+        card.addView(texto("por " + autor(o), 12, INK_LIGHT, false));
         card.addView(espaco(4));
-        card.addView(texto(item.valor.length() == 0 ? "Valor a combinar" : item.valor, 15, corPreco(item.valor), true));
-        card.addView(texto(item.descricao.length() == 0 ? "Sem descricao informada." : item.descricao, 14, Color.rgb(86, 76, 114), false));
+        card.addView(texto(o.valor.length() == 0 ? "Valor a combinar" : o.valor, 15, corPreco(o.valor), true));
+        card.addView(texto(o.descricao.length() == 0 ? "Sem descricao informada." : o.descricao, 14, Color.rgb(86, 76, 114), false));
+        card.addView(espaco(10));
+        card.addView(resumoConversa(o));
         card.addView(espaco(12));
-
-        TextView cta = texto("☎  Chamar no WhatsApp", 15, WHITE, true);
-        cta.setGravity(Gravity.CENTER);
-        cta.setPadding(0, dp(12), 0, dp(12));
-        cta.setBackground(bg(WHATSAPP, dp(999)));
-        cta.setElevation(dp(3));
-        cta.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                abrirWhatsApp(item);
-            }
-        });
-
-        card.addView(cta, larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
-
+        card.addView(botao("Abrir conversa", INK, WHITE, new View.OnClickListener() { public void onClick(View v) { montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        card.addView(espaco(8));
+        card.addView(botao("Chamar no WhatsApp", WHATSAPP, WHITE, new View.OnClickListener() { public void onClick(View v) { abrirWhatsApp(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
         return card;
     }
 
-    private void montarTelaPublicar() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(CREAM);
+    private View resumoConversa(Oportunidade o) {
+        LinearLayout box = coluna();
+        box.setPadding(dp(13), dp(10), dp(13), dp(10));
+        box.setBackground(bg(Color.argb(130, 255, 255, 255), dp(16)));
+        TextView s = statusPill(statusConversa(o));
+        box.addView(s);
+        String ultima = ultimaMensagemResumo(o);
+        box.addView(texto(ultima.length() > 0 ? ultima : "Sem mensagens ainda. Abra a conversa para negociar por aqui.", 12, INK_LIGHT, false));
+        return box;
+    }
 
-        LinearLayout raiz = new LinearLayout(this);
-        raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
-
-        raiz.addView(headerSecundario("Publicar oportunidade", "Cadastre uma vaga, bico ou servico."));
+    private void montarTelaChat(final Oportunidade o) {
+        LinearLayout raiz = base();
+        raiz.addView(header("Conversa da proposta", "Negocie dentro do app; WhatsApp fica como saida final."));
         raiz.addView(espaco(12));
+        raiz.addView(cardResumo(o));
+        raiz.addView(espaco(10));
+        raiz.addView(statusBox(o));
+        raiz.addView(espaco(12));
+        ArrayList<Mensagem> msgs = carregarMensagens(o);
+        if (msgs.isEmpty()) raiz.addView(bloco("Nenhuma mensagem ainda. Use uma mensagem rapida ou digite abaixo.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        for (int i = 0; i < msgs.size(); i++) {
+            raiz.addView(cardMensagem(msgs.get(i)));
+            raiz.addView(espaco(8));
+        }
+        raiz.addView(espaco(12));
+        raiz.addView(texto("Mensagens rapidas", 14, INK, true));
+        raiz.addView(espaco(6));
+        raiz.addView(mensagensRapidas(o));
+        raiz.addView(espaco(12));
+        final EditText resposta = campo("Digite sua mensagem...");
+        resposta.setMinLines(1);
+        resposta.setMaxLines(4);
+        raiz.addView(resposta);
+        raiz.addView(espaco(10));
+        raiz.addView(botao("Enviar mensagem", INK, WHITE, new View.OnClickListener() { public void onClick(View v) {
+            String t = resposta.getText().toString().trim();
+            if (t.length() == 0) { Toast.makeText(MainActivity.this, "Digite uma mensagem.", Toast.LENGTH_SHORT).show(); return; }
+            addMensagem(o, "Voce", t, "texto");
+            if (AGUARDANDO.equals(statusConversa(o))) setStatus(o, EM_CONVERSA);
+            montarTelaChat(o);
+        }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
+        raiz.addView(espaco(10));
+        raiz.addView(botoesStatus(o));
+        raiz.addView(espaco(10));
+        raiz.addView(botao("Continuar pelo WhatsApp", WHATSAPP, WHITE, new View.OnClickListener() { public void onClick(View v) { abrirWhatsApp(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        raiz.addView(espaco(10));
+        raiz.addView(botao("Voltar para propostas", WHITE, INK, new View.OnClickListener() { public void onClick(View v) { montarTelaPrincipal(); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        setContentViewComNav(scroll(raiz), "chat", false);
+    }
 
+    private View cardResumo(Oportunidade o) {
+        LinearLayout box = colunaCard(tintTipo(o.tipo));
+        box.addView(texto(o.titulo, 20, INK, true));
+        box.addView(texto(o.local, 14, INK_LIGHT, true));
+        box.addView(texto(o.valor.length() == 0 ? "Valor a combinar" : o.valor, 14, corPreco(o.valor), true));
+        box.addView(texto("Proposta -> Conversa -> Combinado -> Concluido", 12, INK_LIGHT, false));
+        return box;
+    }
+
+    private View statusBox(Oportunidade o) {
+        LinearLayout box = linha();
+        box.setGravity(Gravity.CENTER_VERTICAL);
+        box.setPadding(dp(14), dp(12), dp(14), dp(12));
+        box.setBackground(bg(WHITE, dp(18)));
+        box.setElevation(dp(2));
+        box.addView(texto("Status", 14, INK_LIGHT, true), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        box.addView(statusPill(statusConversa(o)));
+        return box;
+    }
+
+    private View cardMensagem(Mensagem m) {
+        boolean minha = "Voce".equals(m.autor);
+        LinearLayout linha = linha();
+        linha.setGravity(minha ? Gravity.RIGHT : Gravity.LEFT);
+        LinearLayout bolha = coluna();
+        bolha.setPadding(dp(14), dp(10), dp(14), dp(10));
+        bolha.setBackground(bg(minha ? INK : WHITE, dp(18)));
+        bolha.setElevation(dp(1));
+        bolha.addView(texto(m.autor + " - " + m.hora, 11, minha ? Color.rgb(220, 214, 236) : INK_LIGHT, true));
+        bolha.addView(texto(m.texto, 15, minha ? WHITE : INK, false));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        p.setMargins(minha ? dp(44) : 0, 0, minha ? 0 : dp(44), 0);
+        linha.addView(bolha, p);
+        return linha;
+    }
+
+    private View mensagensRapidas(final Oportunidade o) {
+        HorizontalScrollView h = new HorizontalScrollView(this);
+        h.setHorizontalScrollBarEnabled(false);
+        LinearLayout l = linha();
+        l.addView(botaoRapido(o, "Qual melhor horario?"));
+        l.addView(botaoRapido(o, "Consegue fazer por esse valor?"));
+        l.addView(botaoRapido(o, "Pode me mandar o endereco?"));
+        l.addView(botaoRapido(o, "Servico combinado"));
+        h.addView(l);
+        return h;
+    }
+
+    private TextView botaoRapido(final Oportunidade o, final String msg) {
+        TextView c = texto(msg, 13, INK, true);
+        c.setGravity(Gravity.CENTER);
+        c.setPadding(dp(14), dp(9), dp(14), dp(9));
+        c.setBackground(bg(WHITE, dp(999)));
+        LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, dp(42));
+        p.setMargins(0, 0, dp(8), 0);
+        c.setLayoutParams(p);
+        c.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
+            addMensagem(o, "Voce", msg, "rapida");
+            setStatus(o, "Servico combinado".equals(msg) ? COMBINADO : EM_CONVERSA);
+            montarTelaChat(o);
+        }});
+        return c;
+    }
+
+    private View botoesStatus(final Oportunidade o) {
+        LinearLayout box = coluna();
+        box.addView(botao("Marcar como combinado", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, COMBINADO); addMensagem(o, "Sistema", "Servico combinado.", "status"); montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        box.addView(espaco(8));
+        box.addView(botao("Concluir servico", Color.rgb(93, 93, 112), WHITE, new View.OnClickListener() { public void onClick(View v) { setStatus(o, CONCLUIDO); addMensagem(o, "Sistema", "Servico concluido.", "status"); montarTelaChat(o); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        return box;
+    }
+
+    private void montarTelaConversas() {
+        LinearLayout raiz = base();
+        raiz.addView(header("Conversas", "Acompanhe negociacoes locais por proposta."));
+        raiz.addView(espaco(12));
+        int ativas = 0;
+        for (int i = 0; i < oportunidades.size(); i++) {
+            if (temConversaAtiva(oportunidades.get(i))) {
+                raiz.addView(cardConversa(oportunidades.get(i)));
+                raiz.addView(espaco(10));
+                ativas++;
+            }
+        }
+        if (ativas == 0) {
+            raiz.addView(bloco("Voce ainda nao tem conversas iniciadas. Toque em uma proposta abaixo para comecar.", 14, INK_LIGHT, false, WHITE, dp(18)));
+            raiz.addView(espaco(12));
+            raiz.addView(texto("Propostas disponiveis", 14, INK, true));
+            raiz.addView(espaco(8));
+            for (int i = 0; i < oportunidades.size(); i++) {
+                raiz.addView(cardConversa(oportunidades.get(i)));
+                raiz.addView(espaco(10));
+            }
+        }
+        setContentViewComNav(scroll(raiz), "chat", false);
+    }
+
+    private View cardConversa(final Oportunidade o) {
+        LinearLayout card = colunaCard(WHITE);
+        LinearLayout top = linha();
+        top.setGravity(Gravity.CENTER_VERTICAL);
+        top.addView(texto(o.titulo, 17, INK, true), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
+        top.addView(statusPill(statusConversa(o)));
+        card.addView(top);
+        card.addView(texto(o.local, 13, INK_LIGHT, false));
+        String ultima = ultimaMensagemResumo(o);
+        card.addView(texto(ultima.length() == 0 ? "Toque para iniciar a negociacao local." : ultima, 13, INK_LIGHT, false));
+        card.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { montarTelaChat(o); }});
+        return card;
+    }
+
+    private boolean temConversaAtiva(Oportunidade o) {
+        return carregarMensagens(o).size() > 0 || !AGUARDANDO.equals(statusConversa(o));
+    }
+
+    private ArrayList<Mensagem> carregarMensagens(Oportunidade o) {
+        ArrayList<Mensagem> ms = new ArrayList<Mensagem>();
+        String salvo = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_CHAT + chave(o), "");
+        if (salvo == null || salvo.trim().length() == 0) return ms;
+        String[] linhas = salvo.split("\\n");
+        for (int i = 0; i < linhas.length; i++) {
+            String[] c = linhas[i].split("\\|", -1);
+            if (c.length >= 4) ms.add(new Mensagem(dec(c[0]), dec(c[1]), dec(c[2]), dec(c[3])));
+        }
+        return ms;
+    }
+
+    private void addMensagem(Oportunidade o, String autor, String texto, String tipo) {
+        ArrayList<Mensagem> ms = carregarMensagens(o);
+        ms.add(new Mensagem(autor, texto, agora(), tipo));
+        StringBuilder b = new StringBuilder();
+        for (int i = 0; i < ms.size(); i++) {
+            Mensagem m = ms.get(i);
+            b.append(enc(m.autor)).append("|").append(enc(m.texto)).append("|").append(enc(m.hora)).append("|").append(enc(m.tipo));
+            if (i < ms.size() - 1) b.append("\n");
+        }
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_CHAT + chave(o), b.toString()).apply();
+    }
+
+    private String ultimaMensagemResumo(Oportunidade o) {
+        ArrayList<Mensagem> ms = carregarMensagens(o);
+        if (ms.isEmpty()) return "";
+        Mensagem m = ms.get(ms.size() - 1);
+        String t = m.autor + ": " + m.texto;
+        return t.length() > 82 ? t.substring(0, 82) + "..." : t;
+    }
+
+    private String statusConversa(Oportunidade o) {
+        String s = getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_STATUS + chave(o), "");
+        if (s == null || s.trim().length() == 0) return carregarMensagens(o).isEmpty() ? AGUARDANDO : EM_CONVERSA;
+        return s;
+    }
+
+    private void setStatus(Oportunidade o, String s) {
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_STATUS + chave(o), s).apply();
+    }
+
+    private String chave(Oportunidade o) {
+        return String.valueOf(Math.abs((o.titulo + "|" + o.local + "|" + o.autor + "|" + o.contato).hashCode()));
+    }
+
+    private TextView statusPill(String s) {
+        TextView v = texto(labelStatus(s), 12, corStatus(s), true);
+        v.setGravity(Gravity.CENTER);
+        v.setPadding(dp(10), dp(5), dp(10), dp(5));
+        v.setBackground(bg(fundoStatus(s), dp(999)));
+        return v;
+    }
+
+    private String labelStatus(String s) {
+        if (EM_CONVERSA.equals(s)) return "Em conversa";
+        if (COMBINADO.equals(s)) return "Combinado";
+        if (CONCLUIDO.equals(s)) return "Concluido";
+        return "Aguardando resposta";
+    }
+
+    private int corStatus(String s) {
+        if (EM_CONVERSA.equals(s)) return BLUE;
+        if (COMBINADO.equals(s)) return GREEN;
+        if (CONCLUIDO.equals(s)) return Color.rgb(80, 80, 94);
+        return TANGERINE;
+    }
+
+    private int fundoStatus(String s) {
+        if (EM_CONVERSA.equals(s)) return Color.rgb(238, 244, 255);
+        if (COMBINADO.equals(s)) return Color.rgb(226, 252, 240);
+        if (CONCLUIDO.equals(s)) return CINZA_TINT;
+        return SEGURANCA_TINT;
+    }
+
+    private void montarTelaPublicar() {
+        LinearLayout raiz = base();
+        raiz.addView(header("Publicar oportunidade", "Cadastre uma vaga, bico ou servico."));
+        raiz.addView(espaco(12));
         if (!perfilCompleto()) {
             raiz.addView(bloco("Dica: cadastre seu perfil antes de publicar para passar mais confianca.", 14, WHITE, true, TANGERINE, dp(18)));
             raiz.addView(espaco(10));
         }
-
         final EditText tipo = campo("Tipo: VAGA, BICO, SERVICO, URGENTE ou SEGURANCA");
         final EditText titulo = campo("Titulo da oportunidade");
         final EditText cidade = campo("Cidade / bairro");
         final EditText valor = campo("Valor ou salario");
-        final EditText descricao = campo("Descricao");
+        final EditText desc = campo("Descricao");
         final EditText contato = campo("WhatsApp para contato");
-
-        if (perfilTelefone.trim().length() > 0) {
-            contato.setText(perfilTelefone);
-        }
-        if (perfilCidade.trim().length() > 0) {
-            cidade.setText(perfilCidade);
-        }
-
-        raiz.addView(tipo);
-        raiz.addView(espaco(8));
-        raiz.addView(titulo);
-        raiz.addView(espaco(8));
-        raiz.addView(cidade);
-        raiz.addView(espaco(8));
-        raiz.addView(valor);
-        raiz.addView(espaco(8));
-        raiz.addView(descricao);
-        raiz.addView(espaco(8));
-        raiz.addView(contato);
-        raiz.addView(espaco(14));
-
-        raiz.addView(botaoTexto("Salvar oportunidade", GREEN, WHITE, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String tipoTexto = tipo.getText().toString().trim().toUpperCase();
-                String tituloTexto = titulo.getText().toString().trim();
-                String cidadeTexto = cidade.getText().toString().trim();
-                String valorTexto = valor.getText().toString().trim();
-                String descricaoTexto = descricao.getText().toString().trim();
-                String contatoTexto = contato.getText().toString().trim();
-
-                if (tipoTexto.length() == 0) tipoTexto = "BICO";
-
-                if (tituloTexto.length() == 0 || cidadeTexto.length() == 0 || contatoTexto.length() == 0) {
-                    Toast.makeText(MainActivity.this, "Preencha titulo, cidade e contato.", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                String autor = perfilNome.trim().length() == 0 ? "Usuario local" : perfilNome;
-                oportunidades.add(0, new Oportunidade(tipoTexto, tituloTexto, cidadeTexto, valorTexto, descricaoTexto, contatoTexto, autor));
-                salvarOportunidades();
-                filtroAtual = "TODOS";
-                Toast.makeText(MainActivity.this, "Oportunidade publicada e salva neste aparelho.", Toast.LENGTH_LONG).show();
-                montarTelaPrincipal();
-            }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
-
+        if (perfilTelefone.trim().length() > 0) contato.setText(perfilTelefone);
+        if (perfilCidade.trim().length() > 0) cidade.setText(perfilCidade);
+        raiz.addView(tipo); raiz.addView(espaco(8)); raiz.addView(titulo); raiz.addView(espaco(8)); raiz.addView(cidade); raiz.addView(espaco(8)); raiz.addView(valor); raiz.addView(espaco(8)); raiz.addView(desc); raiz.addView(espaco(8)); raiz.addView(contato); raiz.addView(espaco(14));
+        raiz.addView(botao("Salvar oportunidade", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) {
+            String tp = tipo.getText().toString().trim().toUpperCase();
+            String ti = titulo.getText().toString().trim();
+            String ci = cidade.getText().toString().trim();
+            String va = valor.getText().toString().trim();
+            String de = desc.getText().toString().trim();
+            String co = contato.getText().toString().trim();
+            if (tp.length() == 0) tp = "BICO";
+            if (ti.length() == 0 || ci.length() == 0 || co.length() == 0) { Toast.makeText(MainActivity.this, "Preencha titulo, cidade e contato.", Toast.LENGTH_LONG).show(); return; }
+            oportunidades.add(0, new Oportunidade(tp, ti, ci, va, de, co, perfilNome.trim().length() == 0 ? "Usuario local" : perfilNome));
+            salvarOportunidades(); filtroAtual = "TODOS";
+            Toast.makeText(MainActivity.this, "Oportunidade publicada e salva neste aparelho.", Toast.LENGTH_LONG).show();
+            montarTelaPrincipal();
+        }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
         raiz.addView(espaco(10));
-        raiz.addView(botaoTexto("Voltar", WHITE, INK, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPrincipal();
-            }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
-
-        scroll.addView(raiz);
-        setContentViewComNav(scroll, "publicar", false);
+        raiz.addView(botao("Voltar", WHITE, INK, new View.OnClickListener() { public void onClick(View v) { montarTelaPrincipal(); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        setContentViewComNav(scroll(raiz), "publicar", false);
     }
 
     private void montarTelaPerfil() {
-        ScrollView scroll = new ScrollView(this);
-        scroll.setBackgroundColor(CREAM);
-
-        LinearLayout raiz = new LinearLayout(this);
-        raiz.setOrientation(LinearLayout.VERTICAL);
-        raiz.setPadding(dp(18), dp(18), dp(18), dp(128));
-
-        raiz.addView(headerSecundario("Meu perfil", "Crie uma identidade para publicar e negociar com mais confianca."));
+        LinearLayout raiz = base();
+        raiz.addView(header("Meu perfil", "Crie uma identidade para publicar e negociar com mais confianca."));
         raiz.addView(espaco(12));
-
         final EditText nome = campo("Seu nome ou nome da empresa");
         final EditText cidade = campo("Cidade / bairro");
         final EditText telefone = campo("WhatsApp para contato");
-        final EditText tipoUsuario = campo("Tipo: Trabalhador, Contratante, Empresa ou Autonomo");
-
-        nome.setText(perfilNome);
-        cidade.setText(perfilCidade);
-        telefone.setText(perfilTelefone);
-        tipoUsuario.setText(perfilTipoUsuario);
-
-        raiz.addView(nome);
-        raiz.addView(espaco(8));
-        raiz.addView(cidade);
-        raiz.addView(espaco(8));
-        raiz.addView(telefone);
-        raiz.addView(espaco(8));
-        raiz.addView(tipoUsuario);
-        raiz.addView(espaco(14));
-
-        raiz.addView(botaoTexto("Salvar perfil", GREEN, WHITE, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                String nomeTexto = nome.getText().toString().trim();
-                String cidadeTexto = cidade.getText().toString().trim();
-                String telefoneTexto = telefone.getText().toString().trim();
-                String tipoTexto = tipoUsuario.getText().toString().trim();
-
-                if (nomeTexto.length() == 0 || telefoneTexto.length() == 0) {
-                    Toast.makeText(MainActivity.this, "Preencha pelo menos nome e WhatsApp.", Toast.LENGTH_LONG).show();
-                    return;
-                }
-
-                if (tipoTexto.length() == 0) {
-                    tipoTexto = "Usuario local";
-                }
-
-                salvarPerfil(nomeTexto, cidadeTexto, telefoneTexto, tipoTexto);
-                Toast.makeText(MainActivity.this, "Perfil salvo com sucesso.", Toast.LENGTH_LONG).show();
-                montarTelaPrincipal();
-            }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
-
+        final EditText tipo = campo("Tipo: Trabalhador, Contratante, Empresa ou Autonomo");
+        nome.setText(perfilNome); cidade.setText(perfilCidade); telefone.setText(perfilTelefone); tipo.setText(perfilTipoUsuario);
+        raiz.addView(nome); raiz.addView(espaco(8)); raiz.addView(cidade); raiz.addView(espaco(8)); raiz.addView(telefone); raiz.addView(espaco(8)); raiz.addView(tipo); raiz.addView(espaco(14));
+        raiz.addView(botao("Salvar perfil", GREEN, WHITE, new View.OnClickListener() { public void onClick(View v) {
+            String n = nome.getText().toString().trim();
+            String c = cidade.getText().toString().trim();
+            String t = telefone.getText().toString().trim();
+            String tp = tipo.getText().toString().trim();
+            if (n.length() == 0 || t.length() == 0) { Toast.makeText(MainActivity.this, "Preencha pelo menos nome e WhatsApp.", Toast.LENGTH_LONG).show(); return; }
+            salvarPerfil(n, c, t, tp.length() == 0 ? "Usuario local" : tp);
+            Toast.makeText(MainActivity.this, "Perfil salvo com sucesso.", Toast.LENGTH_LONG).show();
+            montarTelaPrincipal();
+        }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(50)));
         raiz.addView(espaco(10));
-        raiz.addView(bloco("Suas oportunidades publicadas ficam salvas neste aparelho. Na proxima etapa elas vao para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
+        raiz.addView(bloco("Suas oportunidades, conversas e combinados ficam salvos neste aparelho. Depois isso vai para um banco online.", 14, INK_LIGHT, false, WHITE, dp(18)));
         raiz.addView(espaco(10));
-        raiz.addView(botaoTexto("Voltar", WHITE, INK, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPrincipal();
-            }
-        }), larguraAltura(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
-
-        scroll.addView(raiz);
-        setContentViewComNav(scroll, "perfil", false);
+        raiz.addView(botao("Voltar", WHITE, INK, new View.OnClickListener() { public void onClick(View v) { montarTelaPrincipal(); }}), lp(LinearLayout.LayoutParams.MATCH_PARENT, dp(48)));
+        setContentViewComNav(scroll(raiz), "perfil", false);
     }
 
-    private View headerSecundario(String titulo, String subtitulo) {
-        LinearLayout header = new LinearLayout(this);
-        header.setOrientation(LinearLayout.VERTICAL);
-        header.setGravity(Gravity.CENTER_VERTICAL);
-        header.setPadding(dp(20), dp(18), dp(20), dp(18));
-        header.setBackground(gradient(YELLOW, TANGERINE, dp(28)));
-        header.setElevation(dp(4));
-
-        header.addView(texto(titulo, 26, INK, true));
-        header.addView(texto(subtitulo, 15, Color.rgb(91, 62, 30), true));
-
-        return header;
+    private View header(String titulo, String subtitulo) {
+        LinearLayout h = coluna();
+        h.setGravity(Gravity.CENTER_VERTICAL);
+        h.setPadding(dp(20), dp(18), dp(20), dp(18));
+        h.setBackground(gradient(YELLOW, TANGERINE, dp(28)));
+        h.setElevation(dp(4));
+        h.addView(texto(titulo, 26, INK, true));
+        h.addView(texto(subtitulo, 15, Color.rgb(91, 62, 30), true));
+        return h;
     }
 
     private void setContentViewComNav(View conteudo, String ativo, boolean mostrarFab) {
         FrameLayout root = new FrameLayout(this);
         root.setBackgroundColor(CREAM);
-
         root.addView(conteudo, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
-
-        LinearLayout nav = bottomNav(ativo);
         FrameLayout.LayoutParams navLp = new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, dp(72), Gravity.BOTTOM);
-        root.addView(nav, navLp);
-
+        root.addView(bottomNav(ativo), navLp);
         if (mostrarFab) {
             TextView fab = texto("+", 30, WHITE, true);
             fab.setGravity(Gravity.CENTER);
             fab.setBackground(bg(CORAL, dp(999)));
             fab.setElevation(dp(8));
-            fab.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    montarTelaPublicar();
-                }
-            });
-
-            FrameLayout.LayoutParams fabLp = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-            fabLp.setMargins(0, 0, 0, dp(42));
-            root.addView(fab, fabLp);
+            fab.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { montarTelaPublicar(); }});
+            FrameLayout.LayoutParams fp = new FrameLayout.LayoutParams(dp(58), dp(58), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
+            fp.setMargins(0, 0, 0, dp(42));
+            root.addView(fab, fp);
         }
-
         setContentView(root);
     }
 
     private LinearLayout bottomNav(String ativo) {
-        LinearLayout nav = new LinearLayout(this);
-        nav.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout nav = linha();
         nav.setGravity(Gravity.CENTER);
         nav.setPadding(dp(14), dp(6), dp(14), dp(6));
         nav.setBackgroundColor(WHITE);
         nav.setElevation(dp(8));
-
-        nav.addView(navItem("⌂\nInicio", "inicio", ativo, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                filtroAtual = "TODOS";
-                montarTelaPrincipal();
-            }
-        }), pesoNav());
-
-        nav.addView(navItem("⌕\nBuscar", "buscar", ativo, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show();
-            }
-        }), pesoNav());
-
-        TextView espacoFab = new TextView(this);
-        nav.addView(espacoFab, pesoNav());
-
-        nav.addView(navItem("☏\nChat", "chat", ativo, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this, "Chat interno entra depois do banco online.", Toast.LENGTH_SHORT).show();
-            }
-        }), pesoNav());
-
-        nav.addView(navItem("♙\nPerfil", "perfil", ativo, new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                montarTelaPerfil();
-            }
-        }), pesoNav());
-
+        nav.addView(navItem("Inicio", "inicio", ativo, new View.OnClickListener() { public void onClick(View v) { filtroAtual = "TODOS"; montarTelaPrincipal(); }}), pesoNav());
+        nav.addView(navItem("Buscar", "buscar", ativo, new View.OnClickListener() { public void onClick(View v) { Toast.makeText(MainActivity.this, "Busca avancada entra na proxima etapa.", Toast.LENGTH_SHORT).show(); }}), pesoNav());
+        nav.addView(new TextView(this), pesoNav());
+        nav.addView(navItem("Chat", "chat", ativo, new View.OnClickListener() { public void onClick(View v) { montarTelaConversas(); }}), pesoNav());
+        nav.addView(navItem("Perfil", "perfil", ativo, new View.OnClickListener() { public void onClick(View v) { montarTelaPerfil(); }}), pesoNav());
         return nav;
     }
 
-    private TextView navItem(String texto, String chave, String ativo, View.OnClickListener listener) {
-        boolean isAtivo = chave.equals(ativo);
-        TextView item = texto(texto, 11, isAtivo ? INK : INK_LIGHT, true);
+    private TextView navItem(String txt, String chave, String ativo, View.OnClickListener listener) {
+        TextView item = texto(txt, 11, chave.equals(ativo) ? INK : INK_LIGHT, true);
         item.setGravity(Gravity.CENTER);
-        item.setSingleLine(false);
-        item.setBackground(isAtivo ? bg(Color.rgb(255, 241, 214), dp(18)) : bg(Color.TRANSPARENT, dp(18)));
+        item.setBackground(chave.equals(ativo) ? bg(Color.rgb(255, 241, 214), dp(18)) : bg(Color.TRANSPARENT, dp(18)));
         item.setOnClickListener(listener);
         return item;
     }
 
-    private LinearLayout.LayoutParams pesoNav() {
-        return new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1);
-    }
-
-    private int contarFiltro(String filtro) {
-        int total = 0;
-        for (int i = 0; i < oportunidades.size(); i++) {
-            Oportunidade item = oportunidades.get(i);
-            if ("TODOS".equals(filtro) || item.tipo.equals(filtro)) {
-                total++;
-            }
-        }
-        return total;
-    }
-
-    private String textoPerfilResumo() {
-        String cidade = perfilCidade.trim().length() == 0 ? "Cidade nao informada" : perfilCidade;
-        String tipo = perfilTipoUsuario.trim().length() == 0 ? "Usuario local" : perfilTipoUsuario;
-        return cidade + " - " + tipo;
-    }
-
-    private void abrirWhatsApp(Oportunidade item) {
-        String numero = limparNumero(item.contato);
-        if (numero.length() == 0) {
-            Toast.makeText(this, "Contato nao informado.", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        String mensagem = "Ola, vi sua oportunidade no Chama no Trampo e tenho interesse.\n\n" +
-                "Oportunidade: " + item.titulo + "\n" +
-                "Local: " + item.local;
-
-        String url = "https://wa.me/" + numero + "?text=" + Uri.encode(mensagem);
-
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(intent);
-        } catch (Exception erro) {
-            Toast.makeText(this, "Nao consegui abrir o WhatsApp neste aparelho.", Toast.LENGTH_LONG).show();
-        }
+    private void abrirWhatsApp(Oportunidade o) {
+        String numero = limparNumero(o.contato);
+        if (numero.length() == 0) { Toast.makeText(this, "Contato nao informado.", Toast.LENGTH_LONG).show(); return; }
+        String msg = "Ola, vi sua oportunidade no Chama no Trampo e tenho interesse.\n\nOportunidade: " + o.titulo + "\nLocal: " + o.local;
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/" + numero + "?text=" + Uri.encode(msg)))); }
+        catch (Exception e) { Toast.makeText(this, "Nao consegui abrir o WhatsApp neste aparelho.", Toast.LENGTH_LONG).show(); }
     }
 
     private String limparNumero(String contato) {
-        StringBuilder numeros = new StringBuilder();
-        for (int i = 0; i < contato.length(); i++) {
-            char c = contato.charAt(i);
-            if (c >= '0' && c <= '9') {
-                numeros.append(c);
-            }
-        }
-
-        String numero = numeros.toString();
-        if (numero.length() == 10 || numero.length() == 11) {
-            numero = "55" + numero;
-        }
-        return numero;
+        StringBuilder n = new StringBuilder();
+        for (int i = 0; i < contato.length(); i++) { char c = contato.charAt(i); if (c >= '0' && c <= '9') n.append(c); }
+        String s = n.toString();
+        return (s.length() == 10 || s.length() == 11) ? "55" + s : s;
     }
 
-    private int tintTipo(String tipo) {
-        if ("URGENTE".equals(tipo)) return URGENTE_TINT;
-        if ("SERVICO".equals(tipo)) return SERVICO_TINT;
-        if ("BICO".equals(tipo)) return BICO_TINT;
-        if ("SEGURANCA".equals(tipo)) return SEGURANCA_TINT;
-        return VAGA_TINT;
-    }
+    private int contarFiltro(String filtro) { int t = 0; for (int i = 0; i < oportunidades.size(); i++) if ("TODOS".equals(filtro) || oportunidades.get(i).tipo.equals(filtro)) t++; return t; }
+    private String textoPerfilResumo() { return (perfilCidade.trim().length() == 0 ? "Cidade nao informada" : perfilCidade) + " - " + (perfilTipoUsuario.trim().length() == 0 ? "Usuario local" : perfilTipoUsuario); }
+    private String autor(Oportunidade o) { return o.autor == null || o.autor.trim().length() == 0 ? "Usuario local" : o.autor; }
+    private String agora() { return new SimpleDateFormat("dd/MM HH:mm", new Locale("pt", "BR")).format(new Date()); }
+    private int tintTipo(String t) { if ("URGENTE".equals(t)) return URGENTE_TINT; if ("SERVICO".equals(t)) return SERVICO_TINT; if ("BICO".equals(t)) return BICO_TINT; if ("SEGURANCA".equals(t)) return SEGURANCA_TINT; return VAGA_TINT; }
+    private int corTipo(String t) { if ("URGENTE".equals(t)) return CORAL; if ("SERVICO".equals(t)) return BLUE; if ("BICO".equals(t)) return PURPLE; if ("SEGURANCA".equals(t)) return TANGERINE; return GREEN; }
+    private String labelTipo(String t) { if ("SERVICO".equals(t)) return "SERVICO"; if ("BICO".equals(t)) return "BICO"; if ("URGENTE".equals(t)) return "URGENTE"; if ("SEGURANCA".equals(t)) return "SEGURANCA"; return "VAGA"; }
+    private int corPreco(String v) { return v != null && v.contains("R$") ? Color.rgb(10, 138, 77) : INK_LIGHT; }
+    private String distanciaFake(Oportunidade o) { int n = Math.abs((o.titulo + o.local).hashCode()) % 48; return (n < 3 ? n + 1 : n) + " km"; }
+    private String enc(String t) { return t == null ? "" : Uri.encode(t); }
+    private String dec(String t) { return t == null ? "" : Uri.decode(t); }
 
-    private int corTipo(String tipo) {
-        if ("URGENTE".equals(tipo)) return CORAL;
-        if ("SERVICO".equals(tipo)) return BLUE;
-        if ("BICO".equals(tipo)) return PURPLE;
-        if ("SEGURANCA".equals(tipo)) return TANGERINE;
-        return GREEN;
-    }
-
-    private String iconTipo(String tipo) {
-        if ("URGENTE".equals(tipo)) return "!";
-        if ("SERVICO".equals(tipo)) return "⚒";
-        if ("BICO".equals(tipo)) return "⚡";
-        if ("SEGURANCA".equals(tipo)) return "✓";
-        return "▣";
-    }
-
-    private String labelTipo(String tipo) {
-        if ("SERVICO".equals(tipo)) return "SERVICO";
-        if ("BICO".equals(tipo)) return "BICO";
-        if ("URGENTE".equals(tipo)) return "URGENTE";
-        if ("SEGURANCA".equals(tipo)) return "SEGURANCA";
-        return "VAGA";
-    }
-
-    private int corPreco(String valor) {
-        if (valor == null) return INK_LIGHT;
-        if (valor.contains("R$")) return Color.rgb(10, 138, 77);
-        return INK_LIGHT;
-    }
-
-    private String distanciaFake(Oportunidade item) {
-        int n = Math.abs((item.titulo + item.local).hashCode()) % 48;
-        if (n < 3) n = n + 1;
-        return n + " km";
-    }
-
-    private String codificar(String texto) {
-        if (texto == null) return "";
-        return Uri.encode(texto);
-    }
-
-    private String decodificar(String texto) {
-        if (texto == null) return "";
-        return Uri.decode(texto);
-    }
-
-    private EditText campo(String dica) {
-        EditText editText = new EditText(this);
-        editText.setHint(dica);
-        editText.setTextSize(15);
-        editText.setSingleLine(false);
-        editText.setPadding(dp(14), dp(12), dp(14), dp(12));
-        editText.setBackground(bg(WHITE, dp(18)));
-        editText.setTextColor(INK);
-        editText.setHintTextColor(INK_LIGHT);
-        return editText;
-    }
-
-    private TextView botaoTexto(String texto, int fundo, int corTexto, View.OnClickListener listener) {
-        TextView view = bloco(texto, 15, corTexto, true, fundo, dp(999));
-        view.setGravity(Gravity.CENTER);
-        view.setOnClickListener(listener);
-        view.setElevation(dp(2));
-        return view;
-    }
-
-    private TextView bloco(String texto, int tamanho, int corTexto, boolean negrito, int fundo, int raio) {
-        TextView view = texto(texto, tamanho, corTexto, negrito);
-        view.setPadding(dp(16), dp(13), dp(16), dp(13));
-        view.setBackground(bg(fundo, raio));
-        return view;
-    }
-
-    private TextView texto(String texto, int tamanho, int cor, boolean negrito) {
-        TextView view = new TextView(this);
-        view.setText(texto);
-        view.setTextSize(tamanho);
-        view.setTextColor(cor);
-        view.setPadding(0, dp(3), 0, dp(3));
-        if (negrito) {
-            view.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        }
-        return view;
-    }
-
-    private GradientDrawable bg(int cor, int raio) {
-        GradientDrawable drawable = new GradientDrawable();
-        drawable.setColor(cor);
-        drawable.setCornerRadius(raio);
-        return drawable;
-    }
-
-    private GradientDrawable gradient(int inicio, int fim, int raio) {
-        GradientDrawable drawable = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{inicio, fim});
-        drawable.setCornerRadius(raio);
-        return drawable;
-    }
-
-    private void mostrarTelaErro(Throwable erro) {
-        TextView view = new TextView(this);
-        view.setText("Chama no Trampo\n\nO app abriu, mas houve erro na tela.\n\n" + erro.getClass().getSimpleName() + "\n" + erro.getMessage());
-        view.setTextSize(18);
-        view.setTextColor(WHITE);
-        view.setBackgroundColor(Color.rgb(127, 29, 29));
-        view.setGravity(Gravity.CENTER);
-        view.setPadding(dp(24), dp(24), dp(24), dp(24));
-        setContentView(view);
-    }
-
-    private LinearLayout.LayoutParams larguraAltura(int largura, int altura) {
-        return new LinearLayout.LayoutParams(largura, altura);
-    }
-
-    private View espaco(int altura) {
-        View view = new View(this);
-        view.setLayoutParams(new LinearLayout.LayoutParams(1, dp(altura)));
-        return view;
-    }
-
-    private View espacoLargura(int largura) {
-        View view = new View(this);
-        view.setLayoutParams(new LinearLayout.LayoutParams(dp(largura), 1));
-        return view;
-    }
-
-    private int dp(int valor) {
-        return (int) (valor * getResources().getDisplayMetrics().density + 0.5f);
-    }
+    private LinearLayout base() { LinearLayout l = coluna(); l.setPadding(dp(18), dp(18), dp(18), dp(128)); return l; }
+    private ScrollView scroll(View v) { ScrollView s = new ScrollView(this); s.setBackgroundColor(CREAM); s.addView(v); return s; }
+    private LinearLayout coluna() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.VERTICAL); return l; }
+    private LinearLayout linha() { LinearLayout l = new LinearLayout(this); l.setOrientation(LinearLayout.HORIZONTAL); return l; }
+    private LinearLayout colunaCard(int cor) { LinearLayout l = coluna(); l.setPadding(dp(18), dp(16), dp(18), dp(18)); l.setBackground(bg(cor, dp(24))); l.setElevation(dp(3)); return l; }
+    private EditText campo(String dica) { EditText e = new EditText(this); e.setHint(dica); e.setTextSize(15); e.setSingleLine(false); e.setPadding(dp(14), dp(12), dp(14), dp(12)); e.setBackground(bg(WHITE, dp(18))); e.setTextColor(INK); e.setHintTextColor(INK_LIGHT); return e; }
+    private TextView botao(String txt, int fundo, int cor, View.OnClickListener l) { TextView v = bloco(txt, 15, cor, true, fundo, dp(999)); v.setGravity(Gravity.CENTER); v.setOnClickListener(l); v.setElevation(dp(2)); return v; }
+    private TextView bloco(String txt, int tam, int corTexto, boolean negrito, int fundo, int raio) { TextView v = texto(txt, tam, corTexto, negrito); v.setPadding(dp(16), dp(13), dp(16), dp(13)); v.setBackground(bg(fundo, raio)); return v; }
+    private TextView texto(String txt, int tam, int cor, boolean negrito) { TextView v = new TextView(this); v.setText(txt); v.setTextSize(tam); v.setTextColor(cor); v.setPadding(0, dp(3), 0, dp(3)); if (negrito) v.setTypeface(Typeface.DEFAULT, Typeface.BOLD); return v; }
+    private GradientDrawable bg(int cor, int raio) { GradientDrawable d = new GradientDrawable(); d.setColor(cor); d.setCornerRadius(raio); return d; }
+    private GradientDrawable gradient(int a, int b, int raio) { GradientDrawable d = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT, new int[]{a, b}); d.setCornerRadius(raio); return d; }
+    private LinearLayout.LayoutParams lp(int w, int h) { return new LinearLayout.LayoutParams(w, h); }
+    private LinearLayout.LayoutParams pesoNav() { return new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1); }
+    private View espaco(int h) { View v = new View(this); v.setLayoutParams(new LinearLayout.LayoutParams(1, dp(h))); return v; }
+    private int dp(int v) { return (int) (v * getResources().getDisplayMetrics().density + 0.5f); }
+    private void mostrarTelaErro(Throwable e) { TextView v = new TextView(this); v.setText("Chama no Trampo\n\nO app abriu, mas houve erro na tela.\n\n" + e.getClass().getSimpleName() + "\n" + e.getMessage()); v.setTextSize(18); v.setTextColor(WHITE); v.setBackgroundColor(Color.rgb(127, 29, 29)); v.setGravity(Gravity.CENTER); v.setPadding(dp(24), dp(24), dp(24), dp(24)); setContentView(v); }
 
     private static class Oportunidade {
-        String tipo;
-        String titulo;
-        String local;
-        String valor;
-        String descricao;
-        String contato;
-        String autor;
+        String tipo, titulo, local, valor, descricao, contato, autor;
+        Oportunidade(String tipo, String titulo, String local, String valor, String descricao, String contato, String autor) { this.tipo = tipo; this.titulo = titulo; this.local = local; this.valor = valor; this.descricao = descricao; this.contato = contato; this.autor = autor; }
+    }
 
-        Oportunidade(String tipo, String titulo, String local, String valor, String descricao, String contato, String autor) {
-            this.tipo = tipo;
-            this.titulo = titulo;
-            this.local = local;
-            this.valor = valor;
-            this.descricao = descricao;
-            this.contato = contato;
-            this.autor = autor;
-        }
+    private static class Mensagem {
+        String autor, texto, hora, tipo;
+        Mensagem(String autor, String texto, String hora, String tipo) { this.autor = autor; this.texto = texto; this.hora = hora; this.tipo = tipo; }
     }
 }
